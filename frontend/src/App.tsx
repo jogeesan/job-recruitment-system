@@ -21,18 +21,7 @@ function App() {
   }, [])
 
   return (
-    <main className="app">
-      <h1>Job Recruitment &amp; Applicant Tracking System</h1>
-      <p>Frontend is up. Backend connectivity check:</p>
-
-      {error && <p className="status status-down">Backend unreachable — {error}</p>}
-      {!error && !health && <p className="status status-pending">Checking backend…</p>}
-      {health && (
-        <p className="status status-up">
-          {health.service}: {health.status}
-        </p>
-      )}
-    </main>
+    <main className="app"></main>
   )
 }
 
