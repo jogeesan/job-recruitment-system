@@ -6,23 +6,25 @@ Job Recruitment & Applicant Tracking System built with React, Spring Boot, and P
 
 - **Backend:** Java 21, Spring Boot 4.1 (Web, Data JPA, Validation), Maven — [`/backend`](backend)
 - **Frontend:** React + TypeScript, Vite — [`/frontend`](frontend)
-- **Database:** PostgreSQL, run via Docker Compose
+- **Database:** PostgreSQL (Local)
 
 ## Prerequisites
 
 - JDK 21+
 - Node.js 20+
-- Docker Desktop (for PostgreSQL)
+- PostgreSQL (Installed locally)
 
 ## Running locally
 
-**1. Start the database**
+**1. Prepare the Database**
 
-```bash
-docker compose up -d
+Ensure PostgreSQL service is running and create the `recruitment` database:
+
+```sql
+CREATE DATABASE recruitment;
 ```
 
-This starts PostgreSQL on `localhost:5432` (db `recruitment`, user/password `recruitment`) — matches the defaults in `backend/src/main/resources/application.properties`.
+Update your database credentials in [backend/src/main/resources/application.properties](file:///c:/Users/Jogeesan/Desktop/job-recruitment-system/backend/src/main/resources/application.properties) if your username/password differs from the defaults (`postgres` / `postgres`).
 
 **2. Start the backend**
 
@@ -48,7 +50,7 @@ Runs on `http://localhost:5173` and proxies `/api/*` requests to the backend (se
 ```
 backend/    Spring Boot API (Maven)
 frontend/   React + TypeScript app (Vite)
-docker-compose.yml   PostgreSQL for local dev
+myQurery.sql Database Schema scripts
 ```
 
 ## Next steps
