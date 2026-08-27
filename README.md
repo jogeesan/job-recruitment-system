@@ -33,7 +33,7 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-Runs on `http://localhost:8080`. Verify with `curl http://localhost:8080/api/health`.
+Runs on `http://localhost:8080`.
 
 **3. Start the frontend**
 
@@ -43,7 +43,7 @@ npm install
 npm run dev
 ```
 
-Runs on `http://localhost:5173` and proxies `/api/*` requests to the backend (see `frontend/vite.config.ts`). The home page pings `/api/health` to confirm the two are wired up.
+Runs on `http://localhost:5173` and proxies `/api/*` requests to the backend (see `frontend/vite.config.ts`).
 
 ## Project layout
 
@@ -57,4 +57,4 @@ myQurery.sql Database Schema scripts
 
 - Define the core domain (Job, Employer, Applicant, Application, roles) as JPA entities in `backend`.
 - Add Spring Security + auth (JWT or session-based) once the domain model is in place.
-- Replace the health-check placeholder on the frontend home page with real routes/pages.
+- Build out the frontend home page with real routes/pages.
