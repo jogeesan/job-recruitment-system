@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/store/authStore";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Job Recruitment System",
+  title: "TalentBridge — Job Recruitment System",
   description: "Modern job recruitment and applicant tracking system",
 };
 
@@ -23,8 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="antialiased min-h-screen">{children}</body>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark`}>
+      <body className="antialiased min-h-screen bg-background text-foreground">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
