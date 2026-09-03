@@ -40,6 +40,11 @@ public class SecurityConfig {
             "/api/health"
     };
 
+    // ─── Admin-Only Endpoints ─────────────────────────────────────────────────
+    private static final String[] ADMIN_URLS = {
+            "/api/admin/**"
+    };
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -49,6 +54,7 @@ public class SecurityConfig {
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers(PUBLIC_URLS).permitAll()
+                    .requestMatchers(ADMIN_URLS).hasRole("ADMIN")
                     .anyRequest().authenticated())
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
