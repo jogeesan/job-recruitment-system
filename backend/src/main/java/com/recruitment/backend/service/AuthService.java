@@ -3,8 +3,10 @@ package com.recruitment.backend.service;
 import com.recruitment.backend.dto.auth.AuthResponse;
 import com.recruitment.backend.dto.auth.LoginRequest;
 import com.recruitment.backend.dto.auth.RegisterRequest;
+import com.recruitment.backend.entity.Company;
 import com.recruitment.backend.entity.Role;
 import com.recruitment.backend.entity.User;
+import com.recruitment.backend.repository.CompanyRepository;
 import com.recruitment.backend.repository.RoleRepository;
 import com.recruitment.backend.repository.UserRepository;
 import com.recruitment.backend.security.CustomUserDetailsService;
@@ -23,6 +25,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final CompanyRepository companyRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
@@ -60,6 +63,17 @@ public class AuthService {
                 .build();
 
         user = userRepository.save(user);
+
+        // If HR and company name provided, create Company profile
+        if ("HR".equals(role.getName()) && request.getCompanyName() != null && !request.getCompanyName().isBlank()) {
+            Company company = Company.builder()
+                    .user(user)
+                    .companyName(request.getCompanyName().trim())
+                    .companySize(request.getCompanySize())
+                    .verificationStatus("PENDING")
+                    .build();
+            companyRepository.save(company);
+        }
 
         // Generate JWT
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(user.getEmail());

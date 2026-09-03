@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TalentBridge — Job Recruitment System",
-  description: "Modern job recruitment and applicant tracking system",
+  title: "RecruitFlow — Modern Job Recruitment & Pipeline System",
+  description:
+    "Eliminate recruitment friction for job seekers and hiring teams alike — from first search to final hire.",
 };
 
 export default function RootLayout({
@@ -24,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark`}>
-      <body className="antialiased min-h-screen bg-background text-foreground">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className="antialiased min-h-screen bg-[#fafbfc] text-slate-900 selection:bg-indigo-600 selection:text-white">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

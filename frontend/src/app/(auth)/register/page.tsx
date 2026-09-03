@@ -1,284 +1,781 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
-  Eye, EyeOff, Loader2, Briefcase, AlertCircle,
-  User, Mail, Lock, Phone, ChevronDown
+  Eye,
+  EyeOff,
+  Loader2,
+  ArrowLeft,
+  AlertCircle,
+  Building2,
+  CheckCircle2,
 } from "lucide-react";
 import { registerApi } from "@/lib/auth";
 import { useAuth } from "@/store/authStore";
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
-const registerSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-  phone: z.string().optional(),
-  roleName: z.enum(["JOB_SEEKER", "HR"]),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
-type RegisterForm = z.infer<typeof registerSchema>;
+// ─── Validation Schemas ───────────────────────────────────────────────────────
+const seekerSchema = z
+  .object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+    agreeTerms: z.literal(true, {
+      errorMap: () => ({ message: "You must agree to the Terms & Privacy Policy" }),
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
-const ROLES = [
-  { value: "JOB_SEEKER", label: "Job Seeker", description: "Looking for opportunities" },
-  { value: "HR", label: "HR / Recruiter", description: "Hiring for a company" },
-];
+const hrSchema = z
+  .object({
+    companyName: z.string().min(1, "Company name is required"),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    email: z.string().email("Invalid work email address"),
+    companySize: z.string().min(1, "Please select company size"),
+    phone: z.string().min(6, "Valid phone number is required"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+    agreeTerms: z.literal(true, {
+      errorMap: () => ({ message: "You must agree to the Terms & Privacy Policy" }),
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export default function RegisterPage() {
+type SeekerForm = z.infer<typeof seekerSchema>;
+type HrForm = z.infer<typeof hrSchema>;
+
+function RegisterContent() {
+  const searchParams = useSearchParams();
   const { login } = useAuth();
+
+  const roleParam = searchParams.get("role");
+  const initialRole = roleParam === "HR" ? "HR" : "JOB_SEEKER";
+
+  const [role, setRole] = useState<"JOB_SEEKER" | "HR">(initialRole);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { roleName: "JOB_SEEKER" },
+  // Seeker Form
+  const seekerForm = useForm<SeekerForm>({
+    resolver: zodResolver(seekerSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
-  const selectedRole = watch("roleName");
+  // HR Form
+  const hrForm = useForm<HrForm>({
+    resolver: zodResolver(hrSchema),
+    defaultValues: {
+      companyName: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      companySize: "11-50 employees",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
-  const onSubmit = async (data: RegisterForm) => {
+  const onSeekerSubmit = async (data: SeekerForm) => {
     setServerError(null);
     try {
-      const { confirmPassword, ...payload } = data;
-      void confirmPassword;
+      const payload = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+        roleName: "JOB_SEEKER",
+      };
       const authData = await registerApi(payload);
       login(authData);
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : "Registration failed. Try again.";
+        err instanceof Error ? err.message : "Registration failed. Please try again.";
+      setServerError(msg);
+    }
+  };
+
+  const onHrSubmit = async (data: HrForm) => {
+    setServerError(null);
+    try {
+      const payload = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+        phone: data.phone,
+        companyName: data.companyName,
+        companySize: data.companySize,
+        roleName: "HR",
+      };
+      const authData = await registerApi(payload);
+      login(authData);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Registration failed. Please try again.";
       setServerError(msg);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Glow */}
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-700/20 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] left-[-10%] w-[400px] h-[400px] rounded-full bg-violet-700/15 blur-[120px] pointer-events-none" />
+    <div className="min-h-screen bg-[#f4f6f9] flex flex-col lg:flex-row selection:bg-indigo-600 selection:text-white">
+      {/* ─── Left Dark Branding & Steps Panel ────────────────────────────────── */}
+      <div className="lg:w-[45%] bg-[#080e1a] text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden">
+        {/* Decorative Background Glows */}
+        <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 -right-28 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-sky-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10 my-8">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
-            <Briefcase className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-2xl font-bold text-white tracking-tight">
-            TalentBridge
-          </span>
+        {/* Top Logo */}
+        <div className="relative z-10">
+          <Link href="/" className="inline-flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow-lg shadow-indigo-600/30 group-hover:scale-105 transition-transform">
+              RF
+            </div>
+            <span className="text-xl font-bold tracking-tight text-white">
+              RecruitFlow
+            </span>
+          </Link>
         </div>
 
-        {/* Card */}
-        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-8 backdrop-blur-xl shadow-2xl">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-white">Create account</h1>
-            <p className="text-sm text-gray-400 mt-1">
-              Join TalentBridge to get started
+        {/* Center Copy & Steps */}
+        <div className="relative z-10 py-10 lg:py-0 max-w-lg space-y-8">
+          <div className="space-y-4">
+            <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-[#16223e] border border-indigo-500/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
+              Join RecruitFlow
+            </div>
+
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.14]">
+              Create your account. <br />
+              <span className="text-slate-300 font-semibold">Shape what comes next.</span>
+            </h1>
+
+            <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
+              {role === "JOB_SEEKER"
+                ? "Choose your role and get a workspace designed around your recruitment journey."
+                : "Create your hiring workspace and connect with top-tier verified talent effortlessly."}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-            {/* Server Error */}
-            {serverError && (
-              <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-3 text-sm">
-                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>{serverError}</span>
+          {/* Stepper Progress */}
+          <div className="space-y-6 pt-2">
+            {/* Step 1 */}
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-md shadow-indigo-600/30 ring-4 ring-indigo-500/20">
+                01
               </div>
-            )}
-
-            {/* Role Selector */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">I am a</label>
-              <div className="grid grid-cols-2 gap-3">
-                {ROLES.map((role) => (
-                  <label
-                    key={role.value}
-                    className={`relative flex flex-col p-3 rounded-xl border cursor-pointer transition-all duration-200
-                      ${selectedRole === role.value
-                        ? "border-violet-500/60 bg-violet-500/10"
-                        : "border-white/[0.08] bg-white/[0.03] hover:border-white/20"
-                      }`}
-                  >
-                    <input
-                      {...register("roleName")}
-                      type="radio"
-                      value={role.value}
-                      className="sr-only"
-                    />
-                    <span className="text-sm font-medium text-white">{role.label}</span>
-                    <span className="text-xs text-gray-500 mt-0.5">{role.description}</span>
-                  </label>
-                ))}
+              <div>
+                <div className="text-sm font-bold text-white">Choose your role</div>
+                <div className="text-xs text-slate-400">
+                  {role === "JOB_SEEKER" ? "Job seeker profile" : "HR & Company profile"}
+                </div>
               </div>
             </div>
 
-            {/* Name row */}
+            {/* Step 2 */}
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-[#121c33] border border-[#1d2d52] text-indigo-300 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                02
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-200">
+                  {role === "JOB_SEEKER"
+                    ? "Add your details"
+                    : "Company & recruiter details"}
+                </div>
+                <div className="text-xs text-slate-400">
+                  {role === "JOB_SEEKER"
+                    ? "Create a secure professional account"
+                    : "Set up your organization & team profile"}
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-[#121c33] border border-[#1d2d52] text-slate-400 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                03
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-200">
+                  {role === "JOB_SEEKER" ? "Start your journey" : "Publish & hire"}
+                </div>
+                <div className="text-xs text-slate-400">
+                  {role === "JOB_SEEKER"
+                    ? "Find opportunities or track applications"
+                    : "Post jobs and manage candidate pipeline"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Feature Badges */}
+        <div className="relative z-10 pt-6">
+          <div className="flex flex-wrap items-center gap-y-2 gap-x-5 text-xs text-slate-400 font-medium">
+            <span className="flex items-center gap-1.5 text-slate-300">
+              <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+              Secure account
+            </span>
+            <span className="flex items-center gap-1.5 text-slate-300">
+              <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+              Role-based access
+            </span>
+            <span className="flex items-center gap-1.5 text-slate-300">
+              <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+              Centralized workspace
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Right Form Panel ────────────────────────────────────────────────── */}
+      <div className="lg:w-[55%] flex items-center justify-center p-6 sm:p-10 lg:p-14 overflow-y-auto">
+        <div className="w-full max-w-lg bg-white rounded-3xl p-8 sm:p-10 shadow-xl shadow-slate-300/40 border border-slate-100 my-4">
+          {/* Back link */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors mb-6"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back to home
+          </Link>
+
+          {/* Heading */}
+          <div className="mb-6">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              {role === "JOB_SEEKER"
+                ? "Create your account"
+                : "Create your company account"}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              {role === "JOB_SEEKER"
+                ? "Start with the role that best describes you."
+                : "Start hiring top talent with RecruitFlow."}
+            </p>
+          </div>
+
+          {/* Role Toggle Selector */}
+          <div className="mb-6">
+            <label className="block text-xs font-semibold text-slate-700 mb-2">
+              Choose account type
+            </label>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-300">First name</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <button
+                type="button"
+                onClick={() => setRole("JOB_SEEKER")}
+                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                  role === "JOB_SEEKER"
+                    ? "border-2 border-indigo-600 bg-indigo-50/70 text-indigo-700 shadow-sm"
+                    : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+                }`}
+              >
+                Job Seeker
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("HR")}
+                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                  role === "HR"
+                    ? "border-2 border-indigo-600 bg-indigo-50/70 text-indigo-700 shadow-sm"
+                    : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+                }`}
+              >
+                HR / Company
+              </button>
+            </div>
+          </div>
+
+          {/* Server Error Alert */}
+          {serverError && (
+            <div className="mb-5 flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-xs">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
+              <span>{serverError}</span>
+            </div>
+          )}
+
+          {/* ─── JOB SEEKER FORM ────────────────────────────────────────────── */}
+          {role === "JOB_SEEKER" && (
+            <form
+              onSubmit={seekerForm.handleSubmit(onSeekerSubmit)}
+              noValidate
+              className="space-y-4"
+            >
+              {/* First & Last Name row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    First name
+                  </label>
                   <input
-                    {...register("firstName")}
-                    placeholder="John"
-                    className={`w-full bg-white/[0.06] border rounded-xl pl-9 pr-4 py-2.5 text-white placeholder:text-gray-500 text-sm outline-none transition-all duration-200
-                      focus:border-violet-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-violet-500/20
-                      ${errors.firstName ? "border-red-500/60" : "border-white/[0.10]"}`}
+                    {...seekerForm.register("firstName")}
+                    placeholder="Your first name"
+                    className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                      seekerForm.formState.errors.firstName
+                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    }`}
+                  />
+                  {seekerForm.formState.errors.firstName && (
+                    <p className="text-[11px] text-red-600">
+                      {seekerForm.formState.errors.firstName.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Last name
+                  </label>
+                  <input
+                    {...seekerForm.register("lastName")}
+                    placeholder="Your last name"
+                    className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                      seekerForm.formState.errors.lastName
+                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    }`}
+                  />
+                  {seekerForm.formState.errors.lastName && (
+                    <p className="text-[11px] text-red-600">
+                      {seekerForm.formState.errors.lastName.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Email address
+                </label>
+                <input
+                  {...seekerForm.register("email")}
+                  type="email"
+                  placeholder="name@example.com"
+                  className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    seekerForm.formState.errors.email
+                      ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                      : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                  }`}
+                />
+                {seekerForm.formState.errors.email && (
+                  <p className="text-[11px] text-red-600">
+                    {seekerForm.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    {...seekerForm.register("password")}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create a strong password"
+                    className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                      seekerForm.formState.errors.password
+                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    aria-label="Toggle password visibility"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                {seekerForm.formState.errors.password && (
+                  <p className="text-[11px] text-red-600">
+                    {seekerForm.formState.errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Confirm password
+                </label>
+                <div className="relative">
+                  <input
+                    {...seekerForm.register("confirmPassword")}
+                    type={showConfirm ? "text" : "password"}
+                    placeholder="Re-enter your password"
+                    className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                      seekerForm.formState.errors.confirmPassword
+                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    aria-label="Toggle confirm password visibility"
+                  >
+                    {showConfirm ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                {seekerForm.formState.errors.confirmPassword && (
+                  <p className="text-[11px] text-red-600">
+                    {seekerForm.formState.errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+
+              <p className="text-[11px] text-slate-400">
+                Use at least 8 characters with a number and symbol.
+              </p>
+
+              {/* Terms Checkbox */}
+              <div className="pt-1">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    {...seekerForm.register("agreeTerms")}
+                    type="checkbox"
+                    className="w-4 h-4 mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <span className="text-xs text-slate-600">
+                    I agree to the Terms of Service and Privacy Policy.
+                  </span>
+                </label>
+                {seekerForm.formState.errors.agreeTerms && (
+                  <p className="text-[11px] text-red-600 mt-1">
+                    {seekerForm.formState.errors.agreeTerms.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={seekerForm.formState.isSubmitting}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-3 text-sm shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+              >
+                {seekerForm.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  "Create My Account"
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* ─── COMPANY / HR FORM ──────────────────────────────────────────── */}
+          {role === "HR" && (
+            <form
+              onSubmit={hrForm.handleSubmit(onHrSubmit)}
+              noValidate
+              className="space-y-4"
+            >
+              {/* Company Name */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Company name
+                </label>
+                <div className="relative">
+                  <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    {...hrForm.register("companyName")}
+                    placeholder="Acme Technologies Inc."
+                    className={`w-full bg-white border rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                      hrForm.formState.errors.companyName
+                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    }`}
                   />
                 </div>
-                {errors.firstName && (
-                  <p className="text-xs text-red-400">{errors.firstName.message}</p>
+                {hrForm.formState.errors.companyName && (
+                  <p className="text-[11px] text-red-600">
+                    {hrForm.formState.errors.companyName.message}
+                  </p>
                 )}
               </div>
+
+              {/* Recruiter Name row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    First name
+                  </label>
+                  <input
+                    {...hrForm.register("firstName")}
+                    placeholder="Your first name"
+                    className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                      hrForm.formState.errors.firstName
+                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    }`}
+                  />
+                  {hrForm.formState.errors.firstName && (
+                    <p className="text-[11px] text-red-600">
+                      {hrForm.formState.errors.firstName.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Last name
+                  </label>
+                  <input
+                    {...hrForm.register("lastName")}
+                    placeholder="Your last name"
+                    className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                      hrForm.formState.errors.lastName
+                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    }`}
+                  />
+                  {hrForm.formState.errors.lastName && (
+                    <p className="text-[11px] text-red-600">
+                      {hrForm.formState.errors.lastName.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Work Email */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-300">Last name</label>
+                <label className="block text-xs font-semibold text-slate-700">
+                  Work email address
+                </label>
                 <input
-                  {...register("lastName")}
-                  placeholder="Doe"
-                  className={`w-full bg-white/[0.06] border rounded-xl px-4 py-2.5 text-white placeholder:text-gray-500 text-sm outline-none transition-all duration-200
-                    focus:border-violet-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-violet-500/20
-                    ${errors.lastName ? "border-red-500/60" : "border-white/[0.10]"}`}
+                  {...hrForm.register("email")}
+                  type="email"
+                  placeholder="name@company.com"
+                  className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    hrForm.formState.errors.email
+                      ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                      : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                  }`}
                 />
-                {errors.lastName && (
-                  <p className="text-xs text-red-400">{errors.lastName.message}</p>
+                {hrForm.formState.errors.email && (
+                  <p className="text-[11px] text-red-600">
+                    {hrForm.formState.errors.email.message}
+                  </p>
                 )}
               </div>
-            </div>
 
-            {/* Email */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-300">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input
-                  {...register("email")}
-                  type="email"
-                  placeholder="you@example.com"
-                  className={`w-full bg-white/[0.06] border rounded-xl pl-9 pr-4 py-2.5 text-white placeholder:text-gray-500 text-sm outline-none transition-all duration-200
-                    focus:border-violet-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-violet-500/20
-                    ${errors.email ? "border-red-500/60" : "border-white/[0.10]"}`}
-                />
+              {/* Company Size & Phone */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Company size
+                  </label>
+                  <select
+                    {...hrForm.register("companySize")}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option value="1-10 employees">1 - 10 employees</option>
+                    <option value="11-50 employees">11 - 50 employees</option>
+                    <option value="51-200 employees">51 - 200 employees</option>
+                    <option value="201-500 employees">201 - 500 employees</option>
+                    <option value="500+ employees">500+ employees</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Phone number
+                  </label>
+                  <input
+                    {...hrForm.register("phone")}
+                    type="tel"
+                    placeholder="+91 98765 43210"
+                    className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                      hrForm.formState.errors.phone
+                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    }`}
+                  />
+                  {hrForm.formState.errors.phone && (
+                    <p className="text-[11px] text-red-600">
+                      {hrForm.formState.errors.phone.message}
+                    </p>
+                  )}
+                </div>
               </div>
-              {errors.email && (
-                <p className="text-xs text-red-400">{errors.email.message}</p>
-              )}
-            </div>
 
-            {/* Phone (optional) */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-300">
-                Phone <span className="text-gray-500 font-normal">(optional)</span>
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input
-                  {...register("phone")}
-                  type="tel"
-                  placeholder="+91 98765 43210"
-                  className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl pl-9 pr-4 py-2.5 text-white placeholder:text-gray-500 text-sm outline-none transition-all duration-200 focus:border-violet-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-violet-500/20"
-                />
+              {/* Password */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    {...hrForm.register("password")}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create a strong password"
+                    className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                      hrForm.formState.errors.password
+                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    aria-label="Toggle password visibility"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                {hrForm.formState.errors.password && (
+                  <p className="text-[11px] text-red-600">
+                    {hrForm.formState.errors.password.message}
+                  </p>
+                )}
               </div>
-            </div>
 
-            {/* Password */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-300">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input
-                  {...register("password")}
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Min. 6 characters"
-                  className={`w-full bg-white/[0.06] border rounded-xl pl-9 pr-12 py-2.5 text-white placeholder:text-gray-500 text-sm outline-none transition-all duration-200
-                    focus:border-violet-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-violet-500/20
-                    ${errors.password ? "border-red-500/60" : "border-white/[0.10]"}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors p-1"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+              {/* Confirm Password */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Confirm password
+                </label>
+                <div className="relative">
+                  <input
+                    {...hrForm.register("confirmPassword")}
+                    type={showConfirm ? "text" : "password"}
+                    placeholder="Re-enter your password"
+                    className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                      hrForm.formState.errors.confirmPassword
+                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    aria-label="Toggle confirm password visibility"
+                  >
+                    {showConfirm ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                {hrForm.formState.errors.confirmPassword && (
+                  <p className="text-[11px] text-red-600">
+                    {hrForm.formState.errors.confirmPassword.message}
+                  </p>
+                )}
               </div>
-              {errors.password && (
-                <p className="text-xs text-red-400">{errors.password.message}</p>
-              )}
-            </div>
 
-            {/* Confirm Password */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-300">Confirm password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input
-                  {...register("confirmPassword")}
-                  type={showConfirm ? "text" : "password"}
-                  placeholder="Repeat password"
-                  className={`w-full bg-white/[0.06] border rounded-xl pl-9 pr-12 py-2.5 text-white placeholder:text-gray-500 text-sm outline-none transition-all duration-200
-                    focus:border-violet-500/70 focus:bg-white/[0.08] focus:ring-2 focus:ring-violet-500/20
-                    ${errors.confirmPassword ? "border-red-500/60" : "border-white/[0.10]"}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors p-1"
-                >
-                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+              <p className="text-[11px] text-slate-400">
+                Use at least 8 characters with a number and symbol.
+              </p>
+
+              {/* Terms Checkbox */}
+              <div className="pt-1">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    {...hrForm.register("agreeTerms")}
+                    type="checkbox"
+                    className="w-4 h-4 mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <span className="text-xs text-slate-600">
+                    I agree to the Terms of Service and Privacy Policy.
+                  </span>
+                </label>
+                {hrForm.formState.errors.agreeTerms && (
+                  <p className="text-[11px] text-red-600 mt-1">
+                    {hrForm.formState.errors.agreeTerms.message}
+                  </p>
+                )}
               </div>
-              {errors.confirmPassword && (
-                <p className="text-xs text-red-400">{errors.confirmPassword.message}</p>
-              )}
-            </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500
-                text-white font-semibold rounded-xl py-3 text-sm
-                transition-all duration-200 shadow-lg shadow-violet-500/25
-                disabled:opacity-60 disabled:cursor-not-allowed
-                flex items-center justify-center gap-2 mt-1"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                "Create account"
-              )}
-            </button>
-          </form>
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={hrForm.formState.isSubmitting}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-3 text-sm shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+              >
+                {hrForm.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Creating company account...
+                  </>
+                ) : (
+                  "Create Company Account"
+                )}
+              </button>
+            </form>
+          )}
 
-          {/* Login link */}
-          <p className="text-center text-sm text-gray-400 mt-5">
-            Already have an account?{" "}
+          {/* Already have an account link */}
+          <div className="mt-8 text-center border-t border-slate-100 pt-6">
+            <span className="text-xs text-slate-500">
+              Already have an account?{" "}
+            </span>
             <Link
-              href="/login"
-              className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
+              href={`/login?role=${role}`}
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
             >
               Sign in
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#f4f6f9] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+        </div>
+      }
+    >
+      <RegisterContent />
+    </Suspense>
   );
 }

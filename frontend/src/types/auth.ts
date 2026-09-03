@@ -38,4 +38,6 @@ export interface RegisterRequest {
   password: string;
   phone?: string;
   roleName?: string;
+  companyName?: string;
+  companySize?: string;
 }

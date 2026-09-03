@@ -30,4 +30,8 @@ public class RegisterRequest {
 
     // Role: ADMIN, HR, JOB_SEEKER — default JOB_SEEKER
     private String roleName = "JOB_SEEKER";
+
+    // Optional company fields for HR registration
+    private String companyName;
+    private String companySize;
 }
