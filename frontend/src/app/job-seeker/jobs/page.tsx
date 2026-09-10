@@ -3,11 +3,12 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Bookmark, Search } from "lucide-react";
 import { ProtectedDashboard } from "@/components/dashboard/ProtectedDashboard";
-import { searchJobs } from "@/lib/jobs";
+import { getSavedJobIds, searchJobs, toggleSavedJob } from "@/lib/jobs";
 import type { JobSummary } from "@/types/jobs";
 
 export default function FindJobsPage() {
   const [jobs, setJobs] = useState<JobSummary[]>([]);
+  const [savedJobIds, setSavedJobIds] = useState<number[]>([]);
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("");
   const [employmentType, setEmploymentType] = useState("");
@@ -15,7 +16,9 @@ export default function FindJobsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadJobs();
+    Promise.all([loadJobs(), getSavedJobIds()])
+      .then(([, savedIds]) => setSavedJobIds(savedIds))
+      .catch(() => undefined);
   }, []);
 
   async function loadJobs(filters = { keyword, location, employmentType }) {
@@ -33,6 +36,15 @@ export default function FindJobsPage() {
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void loadJobs();
+  }
+
+  async function toggleSaved(jobId: number) {
+    try {
+      const saved = await toggleSavedJob(jobId);
+      setSavedJobIds((current) => saved ? [...new Set([...current, jobId])] : current.filter((id) => id !== jobId));
+    } catch {
+      setError("We could not update saved jobs. Please try again.");
+    }
   }
 
   return (
@@ -69,7 +81,7 @@ export default function FindJobsPage() {
                   <h2 className="text-lg font-bold">{job.title}</h2>
                   <p className="mt-1 text-sm text-slate-500">{job.companyName ?? "Company"} · {job.location ?? "Location not specified"} · {job.employmentType}</p>
                 </div>
-                <button type="button" aria-label={`Save ${job.title}`} className="rounded-lg border border-slate-200 p-2 text-slate-400 hover:text-[#5b55dc]"><Bookmark className="h-4 w-4" /></button>
+                <button type="button" onClick={() => void toggleSaved(job.id)} aria-label={`${savedJobIds.includes(job.id) ? "Remove" : "Save"} ${job.title}`} className={`rounded-lg border p-2 hover:text-[#5b55dc] ${savedJobIds.includes(job.id) ? "border-[#5b55dc] text-[#5b55dc]" : "border-slate-200 text-slate-400"}`}><Bookmark className="h-4 w-4" /></button>
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 text-sm">
                 <span className="font-semibold text-slate-700">{formatSalary(job)}</span>

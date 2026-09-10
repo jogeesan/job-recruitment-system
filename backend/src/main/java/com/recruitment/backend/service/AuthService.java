@@ -7,6 +7,7 @@ import com.recruitment.backend.entity.Company;
 import com.recruitment.backend.entity.Role;
 import com.recruitment.backend.entity.User;
 import com.recruitment.backend.repository.CompanyRepository;
+import com.recruitment.backend.repository.JobSeekerRepository;
 import com.recruitment.backend.repository.RoleRepository;
 import com.recruitment.backend.repository.UserRepository;
 import com.recruitment.backend.security.CustomUserDetailsService;
@@ -26,6 +27,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final CompanyRepository companyRepository;
+    private final JobSeekerRepository jobSeekerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
@@ -73,6 +75,12 @@ public class AuthService {
                     .verificationStatus("PENDING")
                     .build();
             companyRepository.save(company);
+        }
+
+        if ("JOB_SEEKER".equals(role.getName())) {
+            jobSeekerRepository.save(com.recruitment.backend.entity.JobSeeker.builder()
+                    .user(user)
+                    .build());
         }
 
         // Generate JWT
