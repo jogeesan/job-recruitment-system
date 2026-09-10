@@ -5,7 +5,7 @@ Job Recruitment & Applicant Tracking System built with React, Spring Boot, and P
 ## Stack
 
 - **Backend:** Java 21, Spring Boot 4.1 (Web, Data JPA, Validation), Maven — [`/backend`](backend)
-- **Frontend:** React + TypeScript, Vite — [`/frontend`](frontend)
+- **Frontend:** Next.js 16 (React 19, TypeScript, Tailwind CSS v4, App Router) — [`/frontend`](frontend)
 - **Database:** PostgreSQL (Local)
 
 ## Prerequisites
@@ -43,13 +43,13 @@ npm install
 npm run dev
 ```
 
-Runs on `http://localhost:5173` and proxies `/api/*` requests to the backend (see `frontend/vite.config.ts`).
+Runs on `http://localhost:3000`.
 
 ## Project layout
 
 ```
 backend/    Spring Boot API (Maven)
-frontend/   React + TypeScript app (Vite)
+frontend/   Next.js App Router (TypeScript, Tailwind CSS)
 myQurery.sql Database Schema scripts
 ```
 
