@@ -1,16 +1,10 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-} from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { AuthUser, AuthResponse } from "@/types/auth";
+import type { AuthResponse, AuthUser } from "@/types/auth";
+import { getMeApi, logoutApi } from "@/lib/auth";
 
-// ─── Context Types ────────────────────────────────────────────────────────────
 interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
@@ -22,61 +16,42 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // App load ஆகும்போது localStorage-ல் இருந்து restore பண்ணும்
   useEffect(() => {
-    try {
-      const savedToken = localStorage.getItem("auth_token");
-      const savedUser = localStorage.getItem("auth_user");
-      if (savedToken && savedUser) {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-      }
-    } catch {
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("auth_user");
-    } finally {
-      setIsLoading(false);
-    }
+    getMeApi()
+      .then((authData) => setUser(toAuthUser(authData)))
+      .catch(() => setUser(null))
+      .finally(() => setIsLoading(false));
   }, []);
 
-  const login = useCallback((authData: AuthResponse) => {
-    const userData: AuthUser = {
-      userId: authData.userId,
-      email: authData.email,
-      firstName: authData.firstName,
-      lastName: authData.lastName,
-      role: authData.role as AuthUser["role"],
-      status: authData.status,
-    };
-    localStorage.setItem("auth_token", authData.token);
-    localStorage.setItem("auth_user", JSON.stringify(userData));
-    setToken(authData.token);
-    setUser(userData);
-    // The public authentication flow currently ends at the landing page.
-    router.push("/");
-  }, [router]);
+  const login = useCallback(
+    (authData: AuthResponse) => {
+      const nextUser = toAuthUser(authData);
+      setUser(nextUser);
+      router.push(getRolePath(nextUser.role));
+    },
+    [router],
+  );
 
   const logout = useCallback(() => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("auth_user");
-    setToken(null);
-    setUser(null);
-    router.push("/login");
+    logoutApi()
+      .catch(() => undefined)
+      .finally(() => {
+        setUser(null);
+        router.push("/login");
+      });
   }, [router]);
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
-        isAuthenticated: !!user && !!token,
+        token: null,
+        isAuthenticated: Boolean(user),
         isLoading,
         login,
         logout,
@@ -87,9 +62,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+function toAuthUser(authData: AuthResponse): AuthUser {
+  return {
+    userId: authData.userId,
+    email: authData.email,
+    firstName: authData.firstName,
+    lastName: authData.lastName,
+    role: authData.role as AuthUser["role"],
+    status: authData.status,
+  };
+}
+
+function getRolePath(role: AuthUser["role"]): string {
+  if (role === "ADMIN") return "/admin";
+  if (role === "HR") return "/company";
+  return "/job-seeker";
+}
+
 export function useAuth(): AuthContextType {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  return context;
 }

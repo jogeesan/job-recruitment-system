@@ -26,3 +26,7 @@ export async function getMeApi(): Promise<AuthResponse> {
   if (!res.data.success) throw new Error(res.data.message);
   return res.data.data;
 }
+
+export async function logoutApi(): Promise<void> {
+  await api.post("/api/auth/logout");
+}
