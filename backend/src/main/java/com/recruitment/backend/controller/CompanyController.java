@@ -5,11 +5,13 @@ import com.recruitment.backend.dto.company.*;
 import com.recruitment.backend.entity.Application;
 import com.recruitment.backend.entity.Company;
 import com.recruitment.backend.entity.Job;
+import com.recruitment.backend.entity.Interview;
 import com.recruitment.backend.entity.User;
 import com.recruitment.backend.repository.ApplicationRepository;
 import com.recruitment.backend.repository.CompanyRepository;
 import com.recruitment.backend.repository.JobRepository;
 import com.recruitment.backend.repository.UserRepository;
+import com.recruitment.backend.repository.InterviewRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -35,6 +37,7 @@ public class CompanyController {
     private final CompanyRepository companyRepository;
     private final JobRepository jobRepository;
     private final ApplicationRepository applicationRepository;
+    private final InterviewRepository interviewRepository;
 
     @GetMapping("/dashboard")
     @Transactional(readOnly = true)
@@ -168,11 +171,67 @@ public class CompanyController {
         return ResponseEntity.ok(ApiResponse.ok("Application status updated successfully", toApplication(application)));
     }
 
+    @GetMapping("/interviews")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<CompanyInterviewResponse>>> getInterviews(
+            @AuthenticationPrincipal UserDetails details) {
+        Company company = getCompany(details);
+        List<CompanyInterviewResponse> interviews = interviewRepository.findAll().stream()
+                .filter(interview -> interview.getApplication().getJob().getCompany().getId().equals(company.getId()))
+                .map(this::toInterview)
+                .toList();
+        return ResponseEntity.ok(ApiResponse.ok("Company interviews retrieved successfully", interviews));
+    }
+
+    @PostMapping("/applications/{applicationId}/interviews")
+    @Transactional
+    public ResponseEntity<ApiResponse<CompanyInterviewResponse>> scheduleInterview(
+            @AuthenticationPrincipal UserDetails details,
+            @PathVariable Long applicationId,
+            @Valid @RequestBody ScheduleInterviewRequest request) {
+        Company company = getCompany(details);
+        Application application = applicationRepository.findById(applicationId)
+                .filter(item -> item.getJob().getCompany().getId().equals(company.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+        Interview interview = interviewRepository.save(Interview.builder()
+                .application(application)
+                .interviewer(getCompanyUser(details))
+                .interviewType(request.getInterviewType().trim())
+                .scheduledAt(request.getScheduledAt())
+                .durationMinutes(request.getDurationMinutes())
+                .location(request.getLocation())
+                .meetingLink(request.getMeetingLink())
+                .notes(request.getNotes())
+                .status("SCHEDULED")
+                .build());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Interview scheduled successfully", toInterview(interview)));
+    }
+
+    @PutMapping("/interviews/{interviewId}/status")
+    @Transactional
+    public ResponseEntity<ApiResponse<CompanyInterviewResponse>> updateInterviewStatus(
+            @AuthenticationPrincipal UserDetails details,
+            @PathVariable Long interviewId,
+            @RequestParam String status) {
+        Company company = getCompany(details);
+        Interview interview = interviewRepository.findById(interviewId)
+                .filter(item -> item.getApplication().getJob().getCompany().getId().equals(company.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Interview not found"));
+        interview.setStatus(status.toUpperCase());
+        return ResponseEntity.ok(ApiResponse.ok("Interview status updated successfully", toInterview(interview)));
+    }
+
     private Company getCompany(UserDetails details) {
         User user = userRepository.findByEmail(details.getUsername())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return companyRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Company profile not found"));
+    }
+
+    private User getCompanyUser(UserDetails details) {
+        return userRepository.findByEmail(details.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
     private Job getOwnedJob(UserDetails details, Long jobId) {
@@ -209,10 +268,33 @@ public class CompanyController {
 
     private CompanyApplicationResponse toApplication(Application application) {
         User applicant = application.getJobSeeker().getUser();
+        var resume = application.getResume();
         return CompanyApplicationResponse.builder().id(application.getId()).jobId(application.getJob().getId())
                 .jobTitle(application.getJob().getTitle()).jobSeekerId(application.getJobSeeker().getId())
                 .applicantName(applicant.getFirstName() + " " + applicant.getLastName()).applicantEmail(applicant.getEmail())
-                .status(application.getStatus()).coverLetter(application.getCoverLetter()).appliedAt(application.getAppliedAt())
+                .status(application.getStatus()).coverLetter(application.getCoverLetter())
+                .resumeId(resume == null ? null : resume.getId())
+                .resumeFileName(resume == null ? null : resume.getFileName())
+                .resumeFileUrl(resume == null ? null : resume.getFileUrl())
+                .resumeFileType(resume == null ? null : resume.getFileType())
+                .appliedAt(application.getAppliedAt())
                 .updatedAt(application.getUpdatedAt()).build();
+    }
+
+    private CompanyInterviewResponse toInterview(Interview interview) {
+        User applicant = interview.getApplication().getJobSeeker().getUser();
+        return CompanyInterviewResponse.builder().id(interview.getId())
+                .applicationId(interview.getApplication().getId())
+                .applicantName(applicant.getFirstName() + " " + applicant.getLastName())
+                .applicantEmail(applicant.getEmail())
+                .jobTitle(interview.getApplication().getJob().getTitle())
+                .interviewType(interview.getInterviewType())
+                .scheduledAt(interview.getScheduledAt())
+                .durationMinutes(interview.getDurationMinutes())
+                .location(interview.getLocation())
+                .meetingLink(interview.getMeetingLink())
+                .status(interview.getStatus())
+                .notes(interview.getNotes())
+                .build();
     }
 }

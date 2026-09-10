@@ -1,6 +1,6 @@
 import api from "@/lib/api";
 import type { ApiResponse } from "@/types/auth";
-import type { CompanyApplication, CompanyDashboard, CompanyJob, CompanyJobInput, CompanyProfile } from "@/types/company";
+import type { CompanyApplication, CompanyDashboard, CompanyInterview, CompanyJob, CompanyJobInput, CompanyProfile, ScheduleInterviewInput } from "@/types/company";
 
 async function unwrap<T>(request: Promise<{ data: ApiResponse<T> }>): Promise<T> {
   const response = await request;
@@ -20,3 +20,8 @@ export const updateCompanyJobStatus = (id: number, status: string) =>
 export const getCompanyApplications = () => unwrap<CompanyApplication[]>(api.get("/api/company/applications"));
 export const updateApplicationStatus = (id: number, status: string) =>
   unwrap<CompanyApplication>(api.put(`/api/company/applications/${id}/status`, { status }));
+export const getCompanyInterviews = () => unwrap<CompanyInterview[]>(api.get("/api/company/interviews"));
+export const scheduleInterview = (applicationId: number, input: ScheduleInterviewInput) =>
+  unwrap<CompanyInterview>(api.post(`/api/company/applications/${applicationId}/interviews`, input));
+export const updateInterviewStatus = (id: number, status: string) =>
+  unwrap<CompanyInterview>(api.put(`/api/company/interviews/${id}/status`, null, { params: { status } }));

@@ -16,6 +16,10 @@ public class CompanyApplicationResponse {
     private String applicantEmail;
     private String status;
     private String coverLetter;
+    private Long resumeId;
+    private String resumeFileName;
+    private String resumeFileUrl;
+    private String resumeFileType;
     private OffsetDateTime appliedAt;
     private OffsetDateTime updatedAt;
 }

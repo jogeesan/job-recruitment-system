@@ -39,8 +39,36 @@ export interface CompanyApplication {
   applicantEmail: string;
   status: string;
   coverLetter: string | null;
+  resumeId: number | null;
+  resumeFileName: string | null;
+  resumeFileUrl: string | null;
+  resumeFileType: string | null;
   appliedAt: string;
   updatedAt: string;
+}
+
+export interface CompanyInterview {
+  id: number;
+  applicationId: number;
+  applicantName: string;
+  applicantEmail: string;
+  jobTitle: string;
+  interviewType: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  location: string | null;
+  meetingLink: string | null;
+  status: string;
+  notes: string | null;
+}
+
+export interface ScheduleInterviewInput {
+  interviewType: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  location?: string;
+  meetingLink?: string;
+  notes?: string;
 }
 
 export interface CompanyDashboard {
