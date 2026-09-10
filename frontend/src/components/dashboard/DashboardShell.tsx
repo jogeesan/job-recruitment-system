@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BriefcaseBusiness, LayoutDashboard, LogOut, Settings, UserRound } from "lucide-react";
+import { BriefcaseBusiness, FileText, LayoutDashboard, LogOut, Settings, UserRound } from "lucide-react";
 import { useAuth } from "@/store/authStore";
 
 type DashboardRole = "JOB_SEEKER" | "HR" | "ADMIN";
@@ -11,6 +11,7 @@ const navigation: Record<DashboardRole, Array<{ label: string; href: string; ico
   JOB_SEEKER: [
     { label: "Dashboard", href: "/job-seeker", icon: LayoutDashboard },
     { label: "Find Jobs", href: "/job-seeker/jobs", icon: BriefcaseBusiness },
+    { label: "My Applications", href: "/job-seeker/applications", icon: FileText },
     { label: "My Profile", href: "/job-seeker/profile", icon: UserRound },
   ],
   HR: [
