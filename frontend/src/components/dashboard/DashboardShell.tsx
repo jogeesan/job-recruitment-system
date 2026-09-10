@@ -17,6 +17,7 @@ const navigation: Record<DashboardRole, Array<{ label: string; href: string; ico
   HR: [
     { label: "Dashboard", href: "/company", icon: LayoutDashboard },
     { label: "Jobs", href: "/company/jobs", icon: BriefcaseBusiness },
+    { label: "Applications", href: "/company/applications", icon: FileText },
     { label: "Company Profile", href: "/company/profile", icon: UserRound },
   ],
   ADMIN: [
