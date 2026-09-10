@@ -2,8 +2,9 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { ProtectedDashboard } from "@/components/dashboard/ProtectedDashboard";
-import { getJobSeekerProfile, updateJobSeekerProfile } from "@/lib/jobs";
+import { deleteResume, getJobSeekerProfile, getResumes, updateJobSeekerProfile, uploadResume } from "@/lib/jobs";
 import type { JobSeekerProfile } from "@/types/jobSeeker";
+import type { Resume } from "@/types/resume";
 
 const emptyProfile: JobSeekerProfile = {
   id: 0,
@@ -25,10 +26,12 @@ export default function JobSeekerProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    getJobSeekerProfile()
-      .then(setProfile)
+    Promise.all([getJobSeekerProfile(), getResumes()])
+      .then(([loadedProfile, loadedResumes]) => { setProfile(loadedProfile); setResumes(loadedResumes); })
       .catch(() => setMessage("We could not load your profile."))
       .finally(() => setIsLoading(false));
   }, []);
@@ -53,6 +56,32 @@ export default function JobSeekerProfilePage() {
       setMessage("We could not save your profile. Please try again.");
     } finally {
       setIsSaving(false);
+    }
+
+  }
+
+  async function handleResumeUpload(file: File | undefined) {
+    if (!file) return;
+    setIsUploading(true);
+    setMessage(null);
+    try {
+      const resume = await uploadResume(file);
+      setResumes((current) => [...current, resume]);
+      setMessage("Resume uploaded successfully.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "We could not upload your resume.");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  async function handleResumeDelete(id: number) {
+    try {
+      await deleteResume(id);
+      setResumes((current) => current.filter((resume) => resume.id !== id));
+      setMessage("Resume deleted successfully.");
+    } catch {
+      setMessage("We could not delete your resume.");
     }
   }
 
@@ -85,6 +114,14 @@ export default function JobSeekerProfilePage() {
             <button disabled={isSaving} className="rounded-lg bg-[#5b55dc] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{isSaving ? "Saving..." : "Save changes"}</button>
           </form>
         )}
+        {!isLoading && <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div>
+            <h2 className="font-bold">Resumes</h2>
+            <p className="mt-1 text-sm text-slate-500">Upload a PDF, DOC, or DOCX file up to 5 MB.</p>
+          </div>
+          <input type="file" accept=".pdf,.doc,.docx" disabled={isUploading} onChange={(event) => void handleResumeUpload(event.target.files?.[0])} className="block w-full rounded-lg border border-slate-200 p-3 text-sm" />
+          {resumes.length === 0 ? <p className="text-sm text-slate-500">No resumes uploaded yet.</p> : <div className="space-y-2">{resumes.map((resume) => <div key={resume.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 p-3"><a href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}${resume.fileUrl}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#5b55dc]">{resume.fileName}</a><button type="button" onClick={() => void handleResumeDelete(resume.id)} className="text-sm font-semibold text-red-600">Delete</button></div>)}</div>}
+        </section>}
       </div>
     </ProtectedDashboard>
   );

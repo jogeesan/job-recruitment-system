@@ -2,6 +2,7 @@ import api from "@/lib/api";
 import type { ApiResponse } from "@/types/auth";
 import type { JobSummary } from "@/types/jobs";
 import type { ApplicationSummary, JobSeekerProfile } from "@/types/jobSeeker";
+import type { Resume } from "@/types/resume";
 
 export async function searchJobs(params: {
   keyword?: string;
@@ -43,4 +44,25 @@ export async function toggleSavedJob(jobId: number): Promise<boolean> {
   const response = await api.put<ApiResponse<boolean>>(`/api/job-seeker/jobs/${jobId}/saved`);
   if (!response.data.success) throw new Error(response.data.message);
   return response.data.data;
+}
+
+export async function getResumes(): Promise<Resume[]> {
+  const response = await api.get<ApiResponse<Resume[]>>("/api/job-seeker/resumes");
+  if (!response.data.success) throw new Error(response.data.message);
+  return response.data.data;
+}
+
+export async function uploadResume(file: File): Promise<Resume> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await api.post<ApiResponse<Resume>>("/api/job-seeker/resumes", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  if (!response.data.success) throw new Error(response.data.message);
+  return response.data.data;
+}
+
+export async function deleteResume(id: number): Promise<void> {
+  const response = await api.delete<ApiResponse<null>>(`/api/job-seeker/resumes/${id}`);
+  if (!response.data.success) throw new Error(response.data.message);
 }

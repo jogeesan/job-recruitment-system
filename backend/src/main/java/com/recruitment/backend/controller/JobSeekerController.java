@@ -13,7 +13,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
 import java.util.List;
 
 @RestController
@@ -21,6 +27,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('JOB_SEEKER')")
 public class JobSeekerController {
+    private static final long MAX_RESUME_SIZE = 5 * 1024 * 1024;
+    private static final Path RESUME_DIRECTORY = Paths.get("uploads", "resumes").toAbsolutePath().normalize();
 
     private final UserRepository userRepository;
     private final JobSeekerRepository jobSeekerRepository;
@@ -28,6 +36,65 @@ public class JobSeekerController {
     private final ApplicationRepository applicationRepository;
     private final SavedJobRepository savedJobRepository;
     private final ResumeRepository resumeRepository;
+
+    @GetMapping("/resumes")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<ResumeResponse>>> getResumes(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        JobSeeker seeker = getSeeker(userDetails);
+        return ResponseEntity.ok(ApiResponse.ok("Resumes retrieved successfully",
+                resumeRepository.findByJobSeekerId(seeker.getId()).stream().map(this::toResume).toList()));
+    }
+
+    @PostMapping(value = "/resumes", consumes = "multipart/form-data")
+    @Transactional
+    public ResponseEntity<ApiResponse<ResumeResponse>> uploadResume(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam("file") MultipartFile file) {
+        JobSeeker seeker = getSeeker(userDetails);
+        validateResume(file);
+        try {
+            Files.createDirectories(RESUME_DIRECTORY);
+            String originalName = file.getOriginalFilename() == null ? "resume" : file.getOriginalFilename();
+            String storedName = UUID.randomUUID() + "-" + sanitizeFilename(originalName);
+            Path target = RESUME_DIRECTORY.resolve(storedName).normalize();
+            if (!target.startsWith(RESUME_DIRECTORY)) {
+                throw new IllegalArgumentException("Invalid resume filename");
+            }
+            Files.copy(file.getInputStream(), target);
+            Resume resume = resumeRepository.save(Resume.builder()
+                    .jobSeeker(seeker)
+                    .fileName(originalName)
+                    .fileUrl(Paths.get("uploads", "resumes", storedName).toString())
+                    .fileType(file.getContentType())
+                    .fileSize(file.getSize())
+                    .isDefault(resumeRepository.countByJobSeekerId(seeker.getId()) == 0)
+                    .build());
+            resume.setFileUrl("/api/resumes/" + resume.getId());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.ok("Resume uploaded successfully", toResume(resume)));
+        } catch (IOException exception) {
+            throw new IllegalStateException("Resume could not be stored", exception);
+        }
+    }
+
+    @DeleteMapping("/resumes/{resumeId}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteResume(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long resumeId) {
+        JobSeeker seeker = getSeeker(userDetails);
+        Resume resume = resumeRepository.findById(resumeId)
+                .filter(item -> item.getJobSeeker().getId().equals(seeker.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
+        try {
+            Files.deleteIfExists(Paths.get(resume.getFileUrl()));
+        } catch (IOException exception) {
+            throw new IllegalStateException("Resume file could not be deleted", exception);
+        }
+        resumeRepository.delete(resume);
+        return ResponseEntity.ok(ApiResponse.ok("Resume deleted successfully", null));
+    }
 
     @GetMapping("/profile")
     @Transactional(readOnly = true)
@@ -161,5 +228,28 @@ public class JobSeekerController {
                 .appliedAt(application.getAppliedAt())
                 .updatedAt(application.getUpdatedAt())
                 .build();
+    }
+
+    private ResumeResponse toResume(Resume resume) {
+        return ResumeResponse.builder().id(resume.getId()).fileName(resume.getFileName())
+                .fileUrl("/api/resumes/" + resume.getId()).fileType(resume.getFileType()).fileSize(resume.getFileSize())
+                .isDefault(resume.getIsDefault()).uploadedAt(resume.getUploadedAt()).build();
+    }
+
+    private void validateResume(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Choose a resume file to upload");
+        }
+        if (file.getSize() > MAX_RESUME_SIZE) {
+            throw new IllegalArgumentException("Resume must be 5 MB or smaller");
+        }
+        String fileName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase();
+        if (!fileName.endsWith(".pdf") && !fileName.endsWith(".doc") && !fileName.endsWith(".docx")) {
+            throw new IllegalArgumentException("Only PDF, DOC, and DOCX resumes are supported");
+        }
+    }
+
+    private String sanitizeFilename(String fileName) {
+        return fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 }

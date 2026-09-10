@@ -275,7 +275,7 @@ public class CompanyController {
                 .status(application.getStatus()).coverLetter(application.getCoverLetter())
                 .resumeId(resume == null ? null : resume.getId())
                 .resumeFileName(resume == null ? null : resume.getFileName())
-                .resumeFileUrl(resume == null ? null : resume.getFileUrl())
+                .resumeFileUrl(resume == null ? null : "/api/resumes/" + resume.getId())
                 .resumeFileType(resume == null ? null : resume.getFileType())
                 .appliedAt(application.getAppliedAt())
                 .updatedAt(application.getUpdatedAt()).build();
