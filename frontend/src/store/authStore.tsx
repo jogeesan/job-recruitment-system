@@ -59,12 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("auth_user", JSON.stringify(userData));
     setToken(authData.token);
     setUser(userData);
-    // Role-based redirect
-    if (authData.role === "ADMIN") {
-      router.push("/admin/dashboard");
-    } else {
-      router.push("/dashboard");
-    }
+    // The public authentication flow currently ends at the landing page.
+    router.push("/");
   }, [router]);
 
   const logout = useCallback(() => {
