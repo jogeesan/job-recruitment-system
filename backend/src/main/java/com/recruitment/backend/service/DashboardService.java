@@ -28,9 +28,7 @@ public class DashboardService {
         JobSeeker seeker = jobSeekerRepository.findByUserId(userId)
                 .orElse(null);
 
-        long availableJobs = jobRepository.countByCompanyIdAndStatus(null, "OPEN");
-        // Override: count all OPEN jobs
-        availableJobs = jobRepository.findByStatus("OPEN").size();
+        long availableJobs = jobRepository.countByStatus("OPEN");
 
         long myApplications = 0;
         long underReview = 0;
