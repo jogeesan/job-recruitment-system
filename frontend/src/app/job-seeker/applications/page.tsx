@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, FileText } from "lucide-react";
 import { ProtectedDashboard } from "@/components/dashboard/ProtectedDashboard";
 import { getApplicationHistory, getApplications } from "@/lib/jobs";
 import type { ApplicationStatusHistory, ApplicationSummary } from "@/types/jobSeeker";
@@ -48,20 +49,29 @@ export default function ApplicationsPage() {
         </header>
         {isLoading && <p className="text-sm text-slate-500">Loading applications...</p>}
         {error && <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-        {!isLoading && !error && applications.length === 0 && <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">You have not submitted any applications yet.</div>}
+        {!isLoading && !error && applications.length === 0 && (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
+            <FileText className="mx-auto h-8 w-8 text-slate-300" />
+            <p className="mt-3 text-sm font-semibold text-slate-700">No applications yet</p>
+            <p className="mt-1 text-sm text-slate-500">Applications you submit will appear here.</p>
+          </div>
+        )}
         <div className="space-y-3">
           {applications.map((application) => (
-            <article key={application.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                <h2 className="font-bold">{application.jobTitle}</h2>
-                <p className="mt-1 text-sm text-slate-500">{application.companyName}</p>
-                <p className="mt-2 text-xs text-slate-400">Applied {new Date(application.appliedAt).toLocaleDateString()}</p>
+            <article key={application.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-[#c7c4f7] hover:shadow-md">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h2 className="truncate font-bold text-slate-900">{application.jobTitle}</h2>
+                  <p className="mt-1 text-sm text-slate-500">{application.companyName}</p>
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
+                    <span>Applied {formatDate(application.appliedAt)}</span>
+                    <span>Updated {formatDate(application.updatedAt)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">{application.status}</span>
-                  <button type="button" onClick={() => void toggleHistory(application.id)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                    {expandedId === application.id ? "Hide timeline" : "View timeline"}
+                <div className="flex shrink-0 items-center gap-3">
+                  <StatusBadge status={application.status} />
+                  <button type="button" onClick={() => void toggleHistory(application.id)} aria-expanded={expandedId === application.id} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-[#5b55dc] hover:text-[#5b55dc]">
+                    {expandedId === application.id ? <>Hide <ChevronUp className="h-3.5 w-3.5" /></> : <>Timeline <ChevronDown className="h-3.5 w-3.5" /></>}
                   </button>
                 </div>
               </div>
@@ -82,10 +92,10 @@ function StatusTimeline({ history, isLoading }: { history: ApplicationStatusHist
       {history.map((item, index) => (
         <div key={item.id} className="relative pl-6">
           {index < history.length - 1 && <span className="absolute left-[5px] top-3 h-full w-px bg-indigo-200" />}
-          <span className="absolute left-0 top-1 h-3 w-3 rounded-full bg-[#5b55dc]" />
+          <span className="absolute left-0 top-1 h-3 w-3 rounded-full border-2 border-white bg-[#5b55dc] ring-2 ring-indigo-100" />
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-sm font-semibold">{item.newStatus}</p>
-            <time className="text-xs text-slate-400">{new Date(item.changedAt).toLocaleString()}</time>
+            <p className="text-sm font-semibold text-slate-800">{formatLabel(item.newStatus)}</p>
+            <time className="text-xs text-slate-400">{formatDateTime(item.changedAt)}</time>
           </div>
           <p className="mt-1 text-xs text-slate-500">Updated by {item.changedByName}</p>
           {item.notes && <p className="mt-1 text-sm text-slate-600">{item.notes}</p>}
@@ -93,4 +103,29 @@ function StatusTimeline({ history, isLoading }: { history: ApplicationStatusHist
       ))}
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    APPLIED: "bg-slate-100 text-slate-700",
+    REVIEWING: "bg-blue-50 text-blue-700",
+    SHORTLISTED: "bg-amber-50 text-amber-700",
+    REJECTED: "bg-red-50 text-red-700",
+    HIRED: "bg-emerald-50 text-emerald-700",
+  };
+  return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${styles[status] ?? "bg-indigo-50 text-indigo-700"}`}>{formatLabel(status)}</span>;
+}
+
+function formatLabel(value: string): string {
+  return value.toLowerCase().split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 }
