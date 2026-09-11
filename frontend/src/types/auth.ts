@@ -5,6 +5,7 @@ export interface AuthUser {
   email: string;
   firstName: string;
   lastName: string;
+  phone: string | null;
   role: "ADMIN" | "HR" | "JOB_SEEKER";
   status: string;
 }
@@ -16,6 +17,7 @@ export interface AuthResponse {
   email: string;
   firstName: string;
   lastName: string;
+  phone: string | null;
   role: string;
   status: string;
 }

@@ -11,6 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (authData: AuthResponse) => void;
+  updateUser: (authData: AuthResponse) => void;
   logout: () => void;
 }
 
@@ -37,6 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [router],
   );
 
+  const updateUser = useCallback((authData: AuthResponse) => {
+    setUser(toAuthUser(authData));
+  }, []);
+
   const logout = useCallback(() => {
     logoutApi()
       .catch(() => undefined)
@@ -54,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: Boolean(user),
         isLoading,
         login,
+        updateUser,
         logout,
       }}
     >
@@ -68,6 +74,7 @@ function toAuthUser(authData: AuthResponse): AuthUser {
     email: authData.email,
     firstName: authData.firstName,
     lastName: authData.lastName,
+    phone: authData.phone,
     role: authData.role as AuthUser["role"],
     status: authData.status,
   };
