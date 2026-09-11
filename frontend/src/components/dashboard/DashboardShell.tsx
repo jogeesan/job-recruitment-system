@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { getUnreadNotificationCount } from "@/lib/notifications";
 
 type DashboardRole = "JOB_SEEKER" | "HR" | "ADMIN";
+const notificationUpdatedEvent = "notifications:updated";
 
 const navigation: Record<DashboardRole, Array<{ label: string; href: string; icon: typeof LayoutDashboard }>> = {
   JOB_SEEKER: [
@@ -51,7 +52,12 @@ export function DashboardShell({
   const items = navigation[role];
 
   useEffect(() => {
-    getUnreadNotificationCount().then(setUnreadCount).catch(() => setUnreadCount(0));
+    const refreshUnreadCount = () => {
+      getUnreadNotificationCount().then(setUnreadCount).catch(() => setUnreadCount(0));
+    };
+    refreshUnreadCount();
+    window.addEventListener(notificationUpdatedEvent, refreshUnreadCount);
+    return () => window.removeEventListener(notificationUpdatedEvent, refreshUnreadCount);
   }, [pathname]);
 
   return (
