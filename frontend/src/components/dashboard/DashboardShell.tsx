@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, BriefcaseBusiness, FileText, LayoutDashboard, LogOut, Settings, UserRound } from "lucide-react";
+import { Bell, Bookmark, BriefcaseBusiness, FileText, LayoutDashboard, LogOut, Settings, UserRound } from "lucide-react";
 import { useAuth } from "@/store/authStore";
 import { useEffect, useState } from "react";
 import { getUnreadNotificationCount } from "@/lib/notifications";
@@ -13,6 +13,7 @@ const navigation: Record<DashboardRole, Array<{ label: string; href: string; ico
   JOB_SEEKER: [
     { label: "Dashboard", href: "/job-seeker", icon: LayoutDashboard },
     { label: "Find Jobs", href: "/job-seeker/jobs", icon: BriefcaseBusiness },
+    { label: "Saved Jobs", href: "/job-seeker/saved-jobs", icon: Bookmark },
     { label: "My Applications", href: "/job-seeker/applications", icon: FileText },
     { label: "Interviews", href: "/job-seeker/interviews", icon: FileText },
     { label: "My Profile", href: "/job-seeker/profile", icon: UserRound },
@@ -71,7 +72,7 @@ export function DashboardShell({
         <nav className="flex-1 space-y-1 px-3 py-6">
           {items.map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href;
+            const active = pathname === item.href || (item.href !== items[0].href && pathname.startsWith(`${item.href}/`));
             return (
               <Link
                 key={item.href}
