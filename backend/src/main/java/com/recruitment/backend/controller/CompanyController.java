@@ -12,6 +12,7 @@ import com.recruitment.backend.repository.CompanyRepository;
 import com.recruitment.backend.repository.JobRepository;
 import com.recruitment.backend.repository.UserRepository;
 import com.recruitment.backend.repository.InterviewRepository;
+import com.recruitment.backend.service.NotificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,7 @@ public class CompanyController {
     private final JobRepository jobRepository;
     private final ApplicationRepository applicationRepository;
     private final InterviewRepository interviewRepository;
+    private final NotificationService notificationService;
 
     @GetMapping("/dashboard")
     @Transactional(readOnly = true)
@@ -168,6 +170,9 @@ public class CompanyController {
             return ResponseEntity.badRequest().body(ApiResponse.error("Unsupported application status"));
         }
         application.setStatus(request.getStatus().toUpperCase());
+        notificationService.create(application.getJobSeeker().getUser(), "APPLICATION_STATUS",
+                "Application status updated",
+                "Your application for " + application.getJob().getTitle() + " is now " + application.getStatus() + ".");
         return ResponseEntity.ok(ApiResponse.ok("Application status updated successfully", toApplication(application)));
     }
 
@@ -204,6 +209,9 @@ public class CompanyController {
                 .notes(request.getNotes())
                 .status("SCHEDULED")
                 .build());
+        notificationService.create(application.getJobSeeker().getUser(), "INTERVIEW_SCHEDULED",
+                "Interview scheduled",
+                "An interview for " + application.getJob().getTitle() + " has been scheduled.");
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Interview scheduled successfully", toInterview(interview)));
     }
@@ -219,6 +227,9 @@ public class CompanyController {
                 .filter(item -> item.getApplication().getJob().getCompany().getId().equals(company.getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Interview not found"));
         interview.setStatus(status.toUpperCase());
+        notificationService.create(interview.getApplication().getJobSeeker().getUser(), "INTERVIEW_STATUS",
+                "Interview status updated",
+                "Your interview for " + interview.getApplication().getJob().getTitle() + " is now " + interview.getStatus() + ".");
         return ResponseEntity.ok(ApiResponse.ok("Interview status updated successfully", toInterview(interview)));
     }
 

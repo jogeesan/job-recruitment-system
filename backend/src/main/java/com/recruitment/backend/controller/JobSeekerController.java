@@ -4,6 +4,7 @@ import com.recruitment.backend.dto.common.ApiResponse;
 import com.recruitment.backend.dto.jobseeker.*;
 import com.recruitment.backend.entity.*;
 import com.recruitment.backend.repository.*;
+import com.recruitment.backend.service.NotificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,7 @@ public class JobSeekerController {
     private final JobSeekerSkillRepository jobSeekerSkillRepository;
     private final SkillRepository skillRepository;
     private final InterviewRepository interviewRepository;
+    private final NotificationService notificationService;
 
     @GetMapping("/resumes")
     @Transactional(readOnly = true)
@@ -186,6 +188,12 @@ public class JobSeekerController {
                     .body(ApiResponse.error("This interview is no longer awaiting a response"));
         }
         interview.setStatus(normalized);
+        if (interview.getInterviewer() != null) {
+            notificationService.create(interview.getInterviewer(), "INTERVIEW_RESPONSE",
+                    "Candidate responded to interview",
+                    "The candidate has " + normalized.toLowerCase() + " the interview for "
+                            + interview.getApplication().getJob().getTitle() + ".");
+        }
         return ResponseEntity.ok(ApiResponse.ok("Interview response saved successfully", toInterview(interview)));
     }
 
