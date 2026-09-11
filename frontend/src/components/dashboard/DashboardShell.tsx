@@ -12,6 +12,7 @@ const navigation: Record<DashboardRole, Array<{ label: string; href: string; ico
     { label: "Dashboard", href: "/job-seeker", icon: LayoutDashboard },
     { label: "Find Jobs", href: "/job-seeker/jobs", icon: BriefcaseBusiness },
     { label: "My Applications", href: "/job-seeker/applications", icon: FileText },
+    { label: "Interviews", href: "/job-seeker/interviews", icon: FileText },
     { label: "My Profile", href: "/job-seeker/profile", icon: UserRound },
   ],
   HR: [
