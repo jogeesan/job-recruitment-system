@@ -1,6 +1,7 @@
 import api from "@/lib/api";
 import type { ApiResponse } from "@/types/auth";
 import type { JobSummary } from "@/types/jobs";
+import type { JobDetails } from "@/types/jobDetails";
 import type { ApplicationSummary, JobSeekerProfile } from "@/types/jobSeeker";
 import type { Resume } from "@/types/resume";
 import type { ProfileData, EducationItem, ExperienceItem, SkillItem } from "@/types/profileData";
@@ -12,6 +13,18 @@ export async function searchJobs(params: {
   employmentType?: string;
 }): Promise<JobSummary[]> {
   const response = await api.get<ApiResponse<JobSummary[]>>("/api/jobs", { params });
+  if (!response.data.success) throw new Error(response.data.message);
+  return response.data.data;
+}
+
+export async function getJobDetails(jobId: number): Promise<JobDetails> {
+  const response = await api.get<ApiResponse<JobDetails>>(`/api/jobs/${jobId}`);
+  if (!response.data.success) throw new Error(response.data.message);
+  return response.data.data;
+}
+
+export async function applyForJob(jobId: number, input: { resumeId: number; coverLetter: string }): Promise<ApplicationSummary> {
+  const response = await api.post<ApiResponse<ApplicationSummary>>(`/api/job-seeker/jobs/${jobId}/applications`, input);
   if (!response.data.success) throw new Error(response.data.message);
   return response.data.data;
 }

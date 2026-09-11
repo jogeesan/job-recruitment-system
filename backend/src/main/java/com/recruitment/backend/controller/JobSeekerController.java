@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.UUID;
 import java.util.List;
 import java.util.Set;
@@ -277,6 +278,10 @@ public class JobSeekerController {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(ApiResponse.error("This job is no longer accepting applications"));
         }
+        if (job.getApplicationDeadline() != null && job.getApplicationDeadline().isBefore(LocalDate.now())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResponse.error("The application deadline has passed"));
+        }
         if (applicationRepository.existsByJobIdAndJobSeekerId(jobId, seeker.getId())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(ApiResponse.error("You have already applied for this job"));
@@ -293,6 +298,9 @@ public class JobSeekerController {
                 .coverLetter(request.getCoverLetter())
                 .status("APPLIED")
                 .build());
+        notificationService.create(job.getCompany().getUser(), "NEW_APPLICATION",
+                "New job application",
+                "A candidate applied for " + job.getTitle() + ".");
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Application submitted successfully", toApplication(application)));
     }
