@@ -45,6 +45,7 @@ public class JobSeekerController {
     private final SkillRepository skillRepository;
     private final InterviewRepository interviewRepository;
     private final NotificationService notificationService;
+    private final ApplicationStatusHistoryRepository applicationStatusHistoryRepository;
 
     @GetMapping("/resumes")
     @Transactional(readOnly = true)
@@ -139,6 +140,23 @@ public class JobSeekerController {
                 .map(this::toApplication)
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok("Applications retrieved successfully", applications));
+    }
+
+    @GetMapping("/applications/{applicationId}/history")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<ApplicationStatusHistoryResponse>>> getApplicationHistory(
+            @AuthenticationPrincipal UserDetails details,
+            @PathVariable Long applicationId) {
+        JobSeeker seeker = getSeeker(details);
+        applicationRepository.findById(applicationId)
+                .filter(application -> application.getJobSeeker().getId().equals(seeker.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+        List<ApplicationStatusHistoryResponse> history = applicationStatusHistoryRepository
+                .findByApplicationIdOrderByChangedAtAsc(applicationId)
+                .stream()
+                .map(this::toStatusHistory)
+                .toList();
+        return ResponseEntity.ok(ApiResponse.ok("Application status history retrieved successfully", history));
     }
 
     @GetMapping("/profile-data")
@@ -298,6 +316,12 @@ public class JobSeekerController {
                 .coverLetter(request.getCoverLetter())
                 .status("APPLIED")
                 .build());
+        applicationStatusHistoryRepository.save(ApplicationStatusHistory.builder()
+                .application(application)
+                .newStatus(application.getStatus())
+                .notes("Application submitted")
+                .changedBy(seeker.getUser())
+                .build());
         notificationService.create(job.getCompany().getUser(), "NEW_APPLICATION",
                 "New job application",
                 "A candidate applied for " + job.getTitle() + ".");
@@ -354,6 +378,19 @@ public class JobSeekerController {
                 .location(seeker.getLocation())
                 .yearsOfExperience(seeker.getYearsOfExperience())
                 .profileImageUrl(seeker.getProfileImageUrl())
+                .build();
+    }
+
+    private ApplicationStatusHistoryResponse toStatusHistory(ApplicationStatusHistory history) {
+        User changedBy = history.getChangedBy();
+        String changedByName = changedBy == null ? "System" : changedBy.getFirstName() + " " + changedBy.getLastName();
+        return ApplicationStatusHistoryResponse.builder()
+                .id(history.getId())
+                .oldStatus(history.getOldStatus())
+                .newStatus(history.getNewStatus())
+                .changedByName(changedByName)
+                .notes(history.getNotes())
+                .changedAt(history.getChangedAt())
                 .build();
     }
 

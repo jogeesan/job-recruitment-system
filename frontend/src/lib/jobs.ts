@@ -2,7 +2,7 @@ import api from "@/lib/api";
 import type { ApiResponse } from "@/types/auth";
 import type { JobSummary } from "@/types/jobs";
 import type { JobDetails } from "@/types/jobDetails";
-import type { ApplicationSummary, JobSeekerProfile } from "@/types/jobSeeker";
+import type { ApplicationStatusHistory, ApplicationSummary, JobSeekerProfile } from "@/types/jobSeeker";
 import type { Resume } from "@/types/resume";
 import type { ProfileData, EducationItem, ExperienceItem, SkillItem } from "@/types/profileData";
 import type { JobSeekerInterview } from "@/types/interview";
@@ -45,6 +45,12 @@ export async function updateJobSeekerProfile(
 
 export async function getApplications(): Promise<ApplicationSummary[]> {
   const response = await api.get<ApiResponse<ApplicationSummary[]>>("/api/job-seeker/applications");
+  if (!response.data.success) throw new Error(response.data.message);
+  return response.data.data;
+}
+
+export async function getApplicationHistory(applicationId: number): Promise<ApplicationStatusHistory[]> {
+  const response = await api.get<ApiResponse<ApplicationStatusHistory[]>>(`/api/job-seeker/applications/${applicationId}/history`);
   if (!response.data.success) throw new Error(response.data.message);
   return response.data.data;
 }
