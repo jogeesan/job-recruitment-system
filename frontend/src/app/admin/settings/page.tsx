@@ -1,29 +1,36 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, type ReactNode, useEffect, useState } from "react";
+import { Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import { ProtectedDashboard } from "@/components/dashboard/ProtectedDashboard";
 import { changePasswordApi, updateAccountApi } from "@/lib/auth";
 import { useAuth } from "@/store/authStore";
 
 export default function AdminSettingsPage() {
   const { user, updateUser } = useAuth();
-  const [account, setAccount] = useState({
-    firstName: user?.firstName ?? "",
-    lastName: user?.lastName ?? "",
-    phone: user?.phone ?? "",
-  });
+  const [account, setAccount] = useState({ firstName: "", lastName: "", phone: "" });
   const [password, setPassword] = useState({ currentPassword: "", newPassword: "" });
   const [accountState, setAccountState] = useState<{ error?: string; success?: string }>({});
   const [passwordState, setPasswordState] = useState<{ error?: string; success?: string }>({});
   const [savingAccount, setSavingAccount] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
+  useEffect(() => {
+    if (user) setAccount({ firstName: user.firstName ?? "", lastName: user.lastName ?? "", phone: user.phone ?? "" });
+  }, [user]);
 
   async function saveAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAccountState({});
+    if (!account.firstName.trim() || !account.lastName.trim()) {
+      setAccountState({ error: "First name and last name are required." });
+      return;
+    }
     setSavingAccount(true);
     try {
-      const updated = await updateAccountApi(account);
+      const updated = await updateAccountApi({ firstName: account.firstName.trim(), lastName: account.lastName.trim(), phone: account.phone.trim() });
       updateUser(updated);
       setAccountState({ success: "Account details updated successfully." });
     } catch (reason) {
@@ -36,6 +43,14 @@ export default function AdminSettingsPage() {
   async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPasswordState({});
+    if (!password.currentPassword || !password.newPassword) {
+      setPasswordState({ error: "Enter your current password and a new password." });
+      return;
+    }
+    if (password.newPassword.length < 6) {
+      setPasswordState({ error: "Your new password must be at least six characters." });
+      return;
+    }
     setChangingPassword(true);
     try {
       await changePasswordApi(password);
@@ -58,51 +73,48 @@ export default function AdminSettingsPage() {
         </header>
 
         <form onSubmit={saveAccount} className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-xl font-bold">Account details</h2>
-            <p className="mt-1 text-sm text-slate-500">Update the personal details associated with your admin account.</p>
-          </div>
+          <SectionHeading icon={<UserRound className="h-5 w-5" />} title="Account details" description="Update the personal details associated with your admin account." />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="First name" value={account.firstName} onChange={(value) => setAccount((current) => ({ ...current, firstName: value }))} />
             <Field label="Last name" value={account.lastName} onChange={(value) => setAccount((current) => ({ ...current, lastName: value }))} />
           </div>
           <Field label="Email" value={user?.email ?? ""} onChange={() => undefined} disabled />
-          <Field label="Phone" value={account.phone} onChange={(value) => setAccount((current) => ({ ...current, phone: value }))} />
+          <Field label="Phone" value={account.phone} onChange={(value) => setAccount((current) => ({ ...current, phone: value }))} required={false} />
           {accountState.error && <Message variant="error">{accountState.error}</Message>}
           {accountState.success && <Message variant="success">{accountState.success}</Message>}
-          <button disabled={savingAccount} type="submit" className="rounded-lg bg-[#5b55dc] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{savingAccount ? "Saving..." : "Save account details"}</button>
+          <button disabled={savingAccount} type="submit" className="rounded-lg bg-[#5b55dc] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4c47c7] disabled:cursor-not-allowed disabled:opacity-60">{savingAccount ? "Saving..." : "Save account details"}</button>
         </form>
 
         <form onSubmit={changePassword} className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div>
-            <h2 className="text-xl font-bold">Change password</h2>
-            <p className="mt-1 text-sm text-slate-500">Use at least six characters for your new password.</p>
-          </div>
-          <Field label="Current password" type="password" value={password.currentPassword} onChange={(value) => setPassword((current) => ({ ...current, currentPassword: value }))} />
-          <Field label="New password" type="password" value={password.newPassword} onChange={(value) => setPassword((current) => ({ ...current, newPassword: value }))} />
+          <SectionHeading icon={<LockKeyhole className="h-5 w-5" />} title="Change password" description="Use at least six characters for your new password." />
+          <PasswordField label="Current password" value={password.currentPassword} visible={showCurrentPassword} onToggle={() => setShowCurrentPassword((visible) => !visible)} onChange={(value) => setPassword((current) => ({ ...current, currentPassword: value }))} />
+          <PasswordField label="New password" value={password.newPassword} visible={showNewPassword} onToggle={() => setShowNewPassword((visible) => !visible)} onChange={(value) => setPassword((current) => ({ ...current, newPassword: value }))} />
           {passwordState.error && <Message variant="error">{passwordState.error}</Message>}
           {passwordState.success && <Message variant="success">{passwordState.success}</Message>}
-          <button disabled={changingPassword} type="submit" className="rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-60">{changingPassword ? "Changing..." : "Change password"}</button>
+          <button disabled={changingPassword} type="submit" className="rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-[#5b55dc] hover:text-[#5b55dc] disabled:cursor-not-allowed disabled:opacity-60">{changingPassword ? "Changing..." : "Change password"}</button>
         </form>
 
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold">Account status</h2>
-          <p className="mt-2 text-sm text-slate-500">Your admin account is currently <span className="font-semibold text-slate-700">{user?.status}</span>.</p>
+          <SectionHeading icon={<ShieldCheck className="h-5 w-5" />} title="Account status" description="Your current administrator account status." />
+          <p className="mt-4 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">{user?.status ?? "Unavailable"}</p>
         </div>
       </div>
     </ProtectedDashboard>
   );
 }
 
-function Field({ label, value, onChange, type = "text", disabled = false }: { label: string; value: string; onChange: (value: string) => void; type?: string; disabled?: boolean }) {
-  return (
-    <label className="block text-sm font-semibold text-slate-700">
-      {label}
-      <input type={type} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} required={!disabled && label !== "Phone"} className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#5b55dc] disabled:bg-slate-50 disabled:text-slate-500" />
-    </label>
-  );
+function SectionHeading({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
+  return <div className="flex items-start gap-3"><div className="rounded-lg bg-indigo-50 p-2.5 text-[#5b55dc]">{icon}</div><div><h2 className="text-xl font-bold">{title}</h2><p className="mt-1 text-sm text-slate-500">{description}</p></div></div>;
+}
+
+function Field({ label, value, onChange, disabled = false, required = true }: { label: string; value: string; onChange: (value: string) => void; disabled?: boolean; required?: boolean }) {
+  return <label className="block text-sm font-semibold text-slate-700">{label}<input type="text" value={value} disabled={disabled} required={required} onChange={(event) => onChange(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#5b55dc] disabled:bg-slate-50 disabled:text-slate-500" /></label>;
+}
+
+function PasswordField({ label, value, visible, onToggle, onChange }: { label: string; value: string; visible: boolean; onToggle: () => void; onChange: (value: string) => void }) {
+  return <label className="block text-sm font-semibold text-slate-700">{label}<div className="relative mt-2"><input type={visible ? "text" : "password"} value={value} required onChange={(event) => onChange(event.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pr-11 text-sm outline-none focus:border-[#5b55dc]" /><button type="button" onClick={onToggle} aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-slate-400 hover:text-slate-700">{visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></label>;
 }
 
 function Message({ children, variant }: { children: string; variant: "error" | "success" }) {
-  return <p className={`rounded-lg p-3 text-sm ${variant === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{children}</p>;
+  return <p role="status" className={`rounded-lg p-3 text-sm ${variant === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{children}</p>;
 }
