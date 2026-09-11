@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/job-seeker")
@@ -36,6 +37,11 @@ public class JobSeekerController {
     private final ApplicationRepository applicationRepository;
     private final SavedJobRepository savedJobRepository;
     private final ResumeRepository resumeRepository;
+    private final EducationRepository educationRepository;
+    private final WorkExperienceRepository workExperienceRepository;
+    private final JobSeekerSkillRepository jobSeekerSkillRepository;
+    private final SkillRepository skillRepository;
+    private final InterviewRepository interviewRepository;
 
     @GetMapping("/resumes")
     @Transactional(readOnly = true)
@@ -130,6 +136,124 @@ public class JobSeekerController {
                 .map(this::toApplication)
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok("Applications retrieved successfully", applications));
+    }
+
+    @GetMapping("/profile-data")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<ProfileDataResponse>> getProfileData(@AuthenticationPrincipal UserDetails details) {
+        JobSeeker seeker = getSeeker(details);
+        return ResponseEntity.ok(ApiResponse.ok("Profile data retrieved successfully", ProfileDataResponse.builder()
+                .education(educationRepository.findByJobSeekerIdOrderByStartDateDesc(seeker.getId()).stream().map(item ->
+                        ProfileDataResponse.EducationItem.builder().id(item.getId()).institution(item.getInstitution()).degree(item.getDegree())
+                                .fieldOfStudy(item.getFieldOfStudy()).startDate(item.getStartDate()).endDate(item.getEndDate()).description(item.getDescription()).build()).toList())
+                .experience(workExperienceRepository.findByJobSeekerIdOrderByStartDateDesc(seeker.getId()).stream().map(item ->
+                        ProfileDataResponse.ExperienceItem.builder().id(item.getId()).companyName(item.getCompanyName()).jobTitle(item.getJobTitle())
+                                .location(item.getLocation()).startDate(item.getStartDate()).endDate(item.getEndDate()).isCurrent(item.getIsCurrent()).description(item.getDescription()).build()).toList())
+                .skills(jobSeekerSkillRepository.findByJobSeekerId(seeker.getId()).stream().map(item ->
+                        ProfileDataResponse.SkillItem.builder().id(item.getId().getSkillId()).skillId(item.getSkill().getId()).name(item.getSkill().getName())
+                                .proficiencyLevel(item.getProficiencyLevel()).yearsOfExperience(item.getYearsOfExperience()).build()).toList())
+                .build()));
+    }
+
+    @GetMapping("/interviews")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<InterviewResponse>>> getInterviews(
+            @AuthenticationPrincipal UserDetails details) {
+        JobSeeker seeker = getSeeker(details);
+        return ResponseEntity.ok(ApiResponse.ok("Interviews retrieved successfully",
+                applicationRepository.findByJobSeekerId(seeker.getId()).stream()
+                        .flatMap(application -> interviewRepository.findByApplicationId(application.getId()).stream())
+                        .map(this::toInterview)
+                        .toList()));
+    }
+
+    @PutMapping("/interviews/{interviewId}/response")
+    @Transactional
+    public ResponseEntity<ApiResponse<InterviewResponse>> respondToInterview(
+            @AuthenticationPrincipal UserDetails details,
+            @PathVariable Long interviewId,
+            @RequestParam String response) {
+        JobSeeker seeker = getSeeker(details);
+        Interview interview = interviewRepository.findById(interviewId)
+                .filter(item -> item.getApplication().getJobSeeker().getId().equals(seeker.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Interview not found"));
+        String normalized = response.toUpperCase();
+        if (!Set.of("ACCEPTED", "DECLINED").contains(normalized)) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Unsupported interview response"));
+        }
+        if (!"SCHEDULED".equals(interview.getStatus())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResponse.error("This interview is no longer awaiting a response"));
+        }
+        interview.setStatus(normalized);
+        return ResponseEntity.ok(ApiResponse.ok("Interview response saved successfully", toInterview(interview)));
+    }
+
+    @GetMapping("/skills")
+    public ResponseEntity<ApiResponse<List<Skill>>> getSkills() {
+        return ResponseEntity.ok(ApiResponse.ok("Skills retrieved successfully", skillRepository.findAll()));
+    }
+
+    @PostMapping("/education")
+    @Transactional
+    public ResponseEntity<ApiResponse<ProfileDataResponse.EducationItem>> addEducation(
+            @AuthenticationPrincipal UserDetails details, @Valid @RequestBody EducationRequest request) {
+        Education item = educationRepository.save(Education.builder().jobSeeker(getSeeker(details))
+                .institution(request.getInstitution().trim()).degree(request.getDegree().trim()).fieldOfStudy(request.getFieldOfStudy())
+                .startDate(request.getStartDate()).endDate(request.getEndDate()).description(request.getDescription()).build());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Education added successfully", toEducation(item)));
+    }
+
+    @DeleteMapping("/education/{id}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteEducation(@AuthenticationPrincipal UserDetails details, @PathVariable Long id) {
+        Education item = educationRepository.findById(id).filter(value -> value.getJobSeeker().getId().equals(getSeeker(details).getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Education not found"));
+        educationRepository.delete(item);
+        return ResponseEntity.ok(ApiResponse.ok("Education deleted successfully", null));
+    }
+
+    @PostMapping("/experience")
+    @Transactional
+    public ResponseEntity<ApiResponse<ProfileDataResponse.ExperienceItem>> addExperience(
+            @AuthenticationPrincipal UserDetails details, @Valid @RequestBody WorkExperienceRequest request) {
+        WorkExperience item = workExperienceRepository.save(WorkExperience.builder().jobSeeker(getSeeker(details))
+                .companyName(request.getCompanyName().trim()).jobTitle(request.getJobTitle().trim()).location(request.getLocation())
+                .startDate(request.getStartDate()).endDate(request.getEndDate()).isCurrent(Boolean.TRUE.equals(request.getIsCurrent()))
+                .description(request.getDescription()).build());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Work experience added successfully", toExperience(item)));
+    }
+
+    @DeleteMapping("/experience/{id}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteExperience(@AuthenticationPrincipal UserDetails details, @PathVariable Long id) {
+        WorkExperience item = workExperienceRepository.findById(id).filter(value -> value.getJobSeeker().getId().equals(getSeeker(details).getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Work experience not found"));
+        workExperienceRepository.delete(item);
+        return ResponseEntity.ok(ApiResponse.ok("Work experience deleted successfully", null));
+    }
+
+    @PostMapping("/skills")
+    @Transactional
+    public ResponseEntity<ApiResponse<ProfileDataResponse.SkillItem>> addSkill(
+            @AuthenticationPrincipal UserDetails details, @Valid @RequestBody AddSkillRequest request) {
+        JobSeeker seeker = getSeeker(details);
+        Skill skill = skillRepository.findById(request.getSkillId()).orElseThrow(() -> new IllegalArgumentException("Skill not found"));
+        JobSeekerSkillId id = new JobSeekerSkillId(seeker.getId(), skill.getId());
+        if (jobSeekerSkillRepository.existsById(id)) return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error("Skill already added"));
+        JobSeekerSkill item = jobSeekerSkillRepository.save(JobSeekerSkill.builder().id(id).jobSeeker(seeker).skill(skill)
+                .proficiencyLevel(request.getProficiencyLevel()).yearsOfExperience(request.getYearsOfExperience()).build());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Skill added successfully", toSkill(item)));
+    }
+
+    @DeleteMapping("/skills/{skillId}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteSkill(@AuthenticationPrincipal UserDetails details, @PathVariable Long skillId) {
+        JobSeeker seeker = getSeeker(details);
+        JobSeekerSkillId id = new JobSeekerSkillId(seeker.getId(), skillId);
+        if (!jobSeekerSkillRepository.existsById(id)) return ResponseEntity.notFound().build();
+        jobSeekerSkillRepository.deleteById(id);
+        return ResponseEntity.ok(ApiResponse.ok("Skill removed successfully", null));
     }
 
     @PostMapping("/jobs/{jobId}/applications")
@@ -234,6 +358,36 @@ public class JobSeekerController {
         return ResumeResponse.builder().id(resume.getId()).fileName(resume.getFileName())
                 .fileUrl("/api/resumes/" + resume.getId()).fileType(resume.getFileType()).fileSize(resume.getFileSize())
                 .isDefault(resume.getIsDefault()).uploadedAt(resume.getUploadedAt()).build();
+    }
+
+    private ProfileDataResponse.EducationItem toEducation(Education item) {
+        return ProfileDataResponse.EducationItem.builder().id(item.getId()).institution(item.getInstitution()).degree(item.getDegree())
+                .fieldOfStudy(item.getFieldOfStudy()).startDate(item.getStartDate()).endDate(item.getEndDate()).description(item.getDescription()).build();
+    }
+
+    private ProfileDataResponse.ExperienceItem toExperience(WorkExperience item) {
+        return ProfileDataResponse.ExperienceItem.builder().id(item.getId()).companyName(item.getCompanyName()).jobTitle(item.getJobTitle())
+                .location(item.getLocation()).startDate(item.getStartDate()).endDate(item.getEndDate()).isCurrent(item.getIsCurrent()).description(item.getDescription()).build();
+    }
+
+    private ProfileDataResponse.SkillItem toSkill(JobSeekerSkill item) {
+        return ProfileDataResponse.SkillItem.builder().id(item.getId().getSkillId()).skillId(item.getSkill().getId()).name(item.getSkill().getName())
+                .proficiencyLevel(item.getProficiencyLevel()).yearsOfExperience(item.getYearsOfExperience()).build();
+    }
+
+    private InterviewResponse toInterview(Interview interview) {
+        return InterviewResponse.builder().id(interview.getId())
+                .applicationId(interview.getApplication().getId())
+                .jobTitle(interview.getApplication().getJob().getTitle())
+                .companyName(interview.getApplication().getJob().getCompany().getCompanyName())
+                .interviewType(interview.getInterviewType())
+                .scheduledAt(interview.getScheduledAt())
+                .durationMinutes(interview.getDurationMinutes())
+                .location(interview.getLocation())
+                .meetingLink(interview.getMeetingLink())
+                .status(interview.getStatus())
+                .notes(interview.getNotes())
+                .build();
     }
 
     private void validateResume(MultipartFile file) {

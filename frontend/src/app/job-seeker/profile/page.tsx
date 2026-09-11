@@ -2,9 +2,10 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { ProtectedDashboard } from "@/components/dashboard/ProtectedDashboard";
-import { deleteResume, getJobSeekerProfile, getResumes, updateJobSeekerProfile, uploadResume } from "@/lib/jobs";
+import { addEducation, addExperience, addProfileSkill, deleteEducation, deleteExperience, deleteProfileSkill, deleteResume, getJobSeekerProfile, getProfileData, getProfileSkills, getResumes, updateJobSeekerProfile, uploadResume } from "@/lib/jobs";
 import type { JobSeekerProfile } from "@/types/jobSeeker";
 import type { Resume } from "@/types/resume";
+import type { ProfileData } from "@/types/profileData";
 
 const emptyProfile: JobSeekerProfile = {
   id: 0,
@@ -28,10 +29,15 @@ export default function JobSeekerProfilePage() {
   const [message, setMessage] = useState<string | null>(null);
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [profileData, setProfileData] = useState<ProfileData>({ education: [], experience: [], skills: [] });
+  const [skillOptions, setSkillOptions] = useState<{ id: number; name: string }[]>([]);
+  const [educationForm, setEducationForm] = useState({ institution: "", degree: "", fieldOfStudy: "", startDate: "", endDate: "", description: "" });
+  const [experienceForm, setExperienceForm] = useState({ companyName: "", jobTitle: "", location: "", startDate: "", endDate: "", isCurrent: false, description: "" });
+  const [selectedSkill, setSelectedSkill] = useState("");
 
   useEffect(() => {
-    Promise.all([getJobSeekerProfile(), getResumes()])
-      .then(([loadedProfile, loadedResumes]) => { setProfile(loadedProfile); setResumes(loadedResumes); })
+    Promise.all([getJobSeekerProfile(), getResumes(), getProfileData(), getProfileSkills()])
+      .then(([loadedProfile, loadedResumes, loadedData, loadedSkills]) => { setProfile(loadedProfile); setResumes(loadedResumes); setProfileData(loadedData); setSkillOptions(loadedSkills); })
       .catch(() => setMessage("We could not load your profile."))
       .finally(() => setIsLoading(false));
   }, []);
@@ -58,6 +64,21 @@ export default function JobSeekerProfilePage() {
       setIsSaving(false);
     }
 
+  }
+
+  async function addEducationItem(event: FormEvent) {
+    event.preventDefault();
+    try { const item = await addEducation({ ...educationForm, fieldOfStudy: educationForm.fieldOfStudy || null, startDate: educationForm.startDate || null, endDate: educationForm.endDate || null, description: educationForm.description || null }); setProfileData((current) => ({ ...current, education: [item, ...current.education] })); setEducationForm({ institution: "", degree: "", fieldOfStudy: "", startDate: "", endDate: "", description: "" }); } catch { setMessage("We could not add this education record."); }
+  }
+
+  async function addExperienceItem(event: FormEvent) {
+    event.preventDefault();
+    try { const item = await addExperience({ ...experienceForm, location: experienceForm.location || null, startDate: experienceForm.startDate, endDate: experienceForm.endDate || null, description: experienceForm.description || null }); setProfileData((current) => ({ ...current, experience: [item, ...current.experience] })); setExperienceForm({ companyName: "", jobTitle: "", location: "", startDate: "", endDate: "", isCurrent: false, description: "" }); } catch { setMessage("We could not add this work experience."); }
+  }
+
+  async function addSkillItem() {
+    if (!selectedSkill) return;
+    try { const item = await addProfileSkill({ skillId: Number(selectedSkill) }); setProfileData((current) => ({ ...current, skills: [...current.skills, item] })); setSelectedSkill(""); } catch { setMessage("We could not add this skill."); }
   }
 
   async function handleResumeUpload(file: File | undefined) {
@@ -122,9 +143,18 @@ export default function JobSeekerProfilePage() {
           <input type="file" accept=".pdf,.doc,.docx" disabled={isUploading} onChange={(event) => void handleResumeUpload(event.target.files?.[0])} className="block w-full rounded-lg border border-slate-200 p-3 text-sm" />
           {resumes.length === 0 ? <p className="text-sm text-slate-500">No resumes uploaded yet.</p> : <div className="space-y-2">{resumes.map((resume) => <div key={resume.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 p-3"><a href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}${resume.fileUrl}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#5b55dc]">{resume.fileName}</a><button type="button" onClick={() => void handleResumeDelete(resume.id)} className="text-sm font-semibold text-red-600">Delete</button></div>)}</div>}
         </section>}
+        {!isLoading && <ProfileSections data={profileData} skillOptions={skillOptions} selectedSkill={selectedSkill} setSelectedSkill={setSelectedSkill} onAddSkill={() => void addSkillItem()} onDeleteEducation={async (id: number) => { await deleteEducation(id); setProfileData((current) => ({ ...current, education: current.education.filter((item) => item.id !== id) })); }} onDeleteExperience={async (id: number) => { await deleteExperience(id); setProfileData((current) => ({ ...current, experience: current.experience.filter((item) => item.id !== id) })); }} onDeleteSkill={async (id: number) => { await deleteProfileSkill(id); setProfileData((current) => ({ ...current, skills: current.skills.filter((item) => item.skillId !== id) })); }} educationForm={educationForm} setEducationForm={setEducationForm} experienceForm={experienceForm} setExperienceForm={setExperienceForm} onAddEducation={addEducationItem} onAddExperience={addExperienceItem} />}
       </div>
     </ProtectedDashboard>
   );
+}
+
+function ProfileSections({ data, skillOptions, selectedSkill, setSelectedSkill, onAddSkill, onDeleteEducation, onDeleteExperience, onDeleteSkill, educationForm, setEducationForm, experienceForm, setExperienceForm, onAddEducation, onAddExperience }: any) {
+  return <div className="space-y-6">
+    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="font-bold">Skills</h2><div className="mt-4 flex gap-3"><select value={selectedSkill} onChange={(e) => setSelectedSkill(e.target.value)} className="flex-1 rounded-lg border border-slate-200 px-3 py-2.5 text-sm"><option value="">Select a skill</option>{skillOptions.filter((skill: any) => !data.skills.some((item: any) => item.skillId === skill.id)).map((skill: any) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}</select><button type="button" onClick={onAddSkill} className="rounded-lg bg-[#5b55dc] px-4 py-2 text-sm font-semibold text-white">Add</button></div><div className="mt-4 flex flex-wrap gap-2">{data.skills.map((item: any) => <span key={item.skillId} className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1.5 text-sm text-indigo-700">{item.name}<button type="button" onClick={() => void onDeleteSkill(item.skillId)} aria-label={`Remove ${item.name}`}>×</button></span>)}</div></section>
+    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="font-bold">Education</h2><form onSubmit={onAddEducation} className="mt-4 grid gap-3 sm:grid-cols-2"><input required placeholder="Institution" value={educationForm.institution} onChange={(e) => setEducationForm({ ...educationForm, institution: e.target.value })} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" /><input required placeholder="Degree" value={educationForm.degree} onChange={(e) => setEducationForm({ ...educationForm, degree: e.target.value })} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" /><input placeholder="Field of study" value={educationForm.fieldOfStudy} onChange={(e) => setEducationForm({ ...educationForm, fieldOfStudy: e.target.value })} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" /><input type="date" value={educationForm.startDate} onChange={(e) => setEducationForm({ ...educationForm, startDate: e.target.value })} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" /><button className="w-fit rounded-lg bg-[#5b55dc] px-4 py-2 text-sm font-semibold text-white">Add education</button></form><div className="mt-4 space-y-2">{data.education.map((item: any) => <div key={item.id} className="flex items-center justify-between rounded-lg border border-slate-100 p-3"><div><p className="font-semibold">{item.degree}</p><p className="text-sm text-slate-500">{item.institution}{item.fieldOfStudy ? ` · ${item.fieldOfStudy}` : ""}</p></div><button type="button" onClick={() => void onDeleteEducation(item.id)} className="text-sm font-semibold text-red-600">Delete</button></div>)}</div></section>
+    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="font-bold">Work experience</h2><form onSubmit={onAddExperience} className="mt-4 grid gap-3 sm:grid-cols-2"><input required placeholder="Company" value={experienceForm.companyName} onChange={(e) => setExperienceForm({ ...experienceForm, companyName: e.target.value })} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" /><input required placeholder="Job title" value={experienceForm.jobTitle} onChange={(e) => setExperienceForm({ ...experienceForm, jobTitle: e.target.value })} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" /><input required type="date" value={experienceForm.startDate} onChange={(e) => setExperienceForm({ ...experienceForm, startDate: e.target.value })} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm" /><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={experienceForm.isCurrent} onChange={(e) => setExperienceForm({ ...experienceForm, isCurrent: e.target.checked })} /> Current role</label><button className="w-fit rounded-lg bg-[#5b55dc] px-4 py-2 text-sm font-semibold text-white">Add experience</button></form><div className="mt-4 space-y-2">{data.experience.map((item: any) => <div key={item.id} className="flex items-center justify-between rounded-lg border border-slate-100 p-3"><div><p className="font-semibold">{item.jobTitle}</p><p className="text-sm text-slate-500">{item.companyName} · {item.isCurrent ? "Current" : item.endDate ?? "Past role"}</p></div><button type="button" onClick={() => void onDeleteExperience(item.id)} className="text-sm font-semibold text-red-600">Delete</button></div>)}</div></section>
+  </div>;
 }
 
 function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
