@@ -29,12 +29,12 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     @Query("""
             SELECT j FROM Job j
             WHERE j.status IN ('OPEN', 'PUBLISHED')
-            AND (:keyword IS NULL
-                 OR LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                 OR LOWER(j.description) LIKE LOWER(CONCAT('%', :keyword, '%')))
-            AND (:location IS NULL
-                 OR LOWER(j.location) LIKE LOWER(CONCAT('%', :location, '%')))
-            AND (:employmentType IS NULL OR j.employmentType = :employmentType)
+            AND (CAST(:keyword AS String) IS NULL
+                 OR LOWER(j.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                 OR LOWER(j.description) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
+            AND (CAST(:location AS String) IS NULL
+                 OR LOWER(j.location) LIKE LOWER(CONCAT('%', CAST(:location AS String), '%')))
+            AND (CAST(:employmentType AS String) IS NULL OR j.employmentType = CAST(:employmentType AS String))
             """)
     List<Job> searchJobs(
             @Param("keyword") String keyword,
