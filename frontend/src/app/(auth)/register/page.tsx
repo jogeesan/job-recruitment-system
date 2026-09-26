@@ -138,9 +138,9 @@ function RegisterContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] flex flex-col lg:flex-row selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-dvh bg-[#f4f6f9] flex flex-col lg:flex-row selection:bg-indigo-600 selection:text-white">
       {/* ─── Left Dark Branding & Steps Panel ────────────────────────────────── */}
-      <div className="lg:w-[45%] bg-[#080e1a] text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden">
+      <div className="lg:w-[40%] bg-[#080e1a] text-white p-5 lg:p-10 xl:p-12 flex flex-col justify-between relative overflow-hidden">
         {/* Decorative Background Glows */}
         <div className="absolute -top-20 -left-20 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 -right-28 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -159,13 +159,13 @@ function RegisterContent() {
         </div>
 
         {/* Center Copy & Steps */}
-        <div className="relative z-10 py-10 lg:py-0 max-w-lg space-y-8">
-          <div className="space-y-4">
+        <div className="relative z-10 hidden lg:block max-w-lg space-y-6">
+          <div className="space-y-2.5">
             <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-[#16223e] border border-indigo-500/20 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
               Join RecruitFlow
             </div>
 
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.14]">
+            <h1 className="text-3xl xl:text-4xl font-extrabold text-white tracking-tight leading-[1.14]">
               Create your account. <br />
               <span className="text-slate-300 font-semibold">Shape what comes next.</span>
             </h1>
@@ -173,12 +173,12 @@ function RegisterContent() {
             <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
               {role === "JOB_SEEKER"
                 ? "Choose your role and get a workspace designed around your recruitment journey."
-                : "Create your hiring workspace and connect with top-tier verified talent effortlessly."}
+                : "Create your company profile, publish jobs and manage applications."}
             </p>
           </div>
 
           {/* Stepper Progress */}
-          <div className="space-y-6 pt-2">
+          <div className="space-y-4 pt-2">
             {/* Step 1 */}
             <div className="flex items-start gap-4">
               <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-md shadow-indigo-600/30 ring-4 ring-indigo-500/20">
@@ -231,7 +231,7 @@ function RegisterContent() {
         </div>
 
         {/* Bottom Feature Badges */}
-        <div className="relative z-10 pt-6">
+        <div className="relative z-10 hidden lg:block pt-4">
           <div className="flex flex-wrap items-center gap-y-2 gap-x-5 text-xs text-slate-400 font-medium">
             <span className="flex items-center gap-1.5 text-slate-300">
               <CheckCircle2 className="w-4 h-4 text-indigo-400" />
@@ -250,20 +250,20 @@ function RegisterContent() {
       </div>
 
       {/* ─── Right Form Panel ────────────────────────────────────────────────── */}
-      <div className="lg:w-[55%] flex items-center justify-center p-6 sm:p-10 lg:p-14 overflow-y-auto">
-        <div className="w-full max-w-lg bg-white rounded-3xl p-8 sm:p-10 shadow-xl shadow-slate-300/40 border border-slate-100 my-4">
+      <div className="lg:w-[60%] flex flex-1 items-center justify-center p-4 sm:p-5 lg:p-4">
+        <div className="w-full max-w-xl bg-white rounded-2xl p-5 sm:p-6 shadow-lg shadow-slate-300/20 border border-slate-100">
           {/* Back link */}
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors mb-6"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors mb-3"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to home
           </Link>
 
           {/* Heading */}
-          <div className="mb-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+          <div className="mb-3">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
               {role === "JOB_SEEKER"
                 ? "Create your account"
                 : "Create your company account"}
@@ -276,7 +276,7 @@ function RegisterContent() {
           </div>
 
           {/* Role Toggle Selector */}
-          <div className="mb-6">
+          <div className="mb-3">
             <label className="block text-xs font-semibold text-slate-700 mb-2">
               Choose account type
             </label>
@@ -284,7 +284,7 @@ function RegisterContent() {
               <button
                 type="button"
                 onClick={() => setRole("JOB_SEEKER")}
-                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                className={`py-2 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
                   role === "JOB_SEEKER"
                     ? "border-2 border-indigo-600 bg-indigo-50/70 text-indigo-700 shadow-sm"
                     : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-800"
@@ -295,7 +295,7 @@ function RegisterContent() {
               <button
                 type="button"
                 onClick={() => setRole("HR")}
-                className={`py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                className={`py-2 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
                   role === "HR"
                     ? "border-2 border-indigo-600 bg-indigo-50/70 text-indigo-700 shadow-sm"
                     : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-800"
@@ -319,18 +319,18 @@ function RegisterContent() {
             <form
               onSubmit={seekerForm.handleSubmit(onSeekerSubmit)}
               noValidate
-              className="space-y-4"
+              className="space-y-2.5"
             >
               {/* First & Last Name row */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="block text-xs font-semibold text-slate-700">
                     First name
                   </label>
                   <input
                     {...seekerForm.register("firstName")}
                     placeholder="Your first name"
-                    className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    className={`w-full bg-white border rounded-xl px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
                       seekerForm.formState.errors.firstName
                         ? "border-red-400 focus:ring-2 focus:ring-red-200"
                         : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
@@ -343,14 +343,14 @@ function RegisterContent() {
                   )}
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="block text-xs font-semibold text-slate-700">
                     Last name
                   </label>
                   <input
                     {...seekerForm.register("lastName")}
                     placeholder="Your last name"
-                    className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    className={`w-full bg-white border rounded-xl px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
                       seekerForm.formState.errors.lastName
                         ? "border-red-400 focus:ring-2 focus:ring-red-200"
                         : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
@@ -365,7 +365,7 @@ function RegisterContent() {
               </div>
 
               {/* Email */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="block text-xs font-semibold text-slate-700">
                   Email address
                 </label>
@@ -373,7 +373,7 @@ function RegisterContent() {
                   {...seekerForm.register("email")}
                   type="email"
                   placeholder="name@example.com"
-                  className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                  className={`w-full bg-white border rounded-xl px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
                     seekerForm.formState.errors.email
                       ? "border-red-400 focus:ring-2 focus:ring-red-200"
                       : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
@@ -386,44 +386,45 @@ function RegisterContent() {
                 )}
               </div>
 
-              {/* Password */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    {...seekerForm.register("password")}
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Create a strong password"
-                    className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
-                      seekerForm.formState.errors.password
-                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
-                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                    aria-label="Toggle password visibility"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-                {seekerForm.formState.errors.password && (
-                  <p className="text-[11px] text-red-600">
-                    {seekerForm.formState.errors.password.message}
-                  </p>
-                )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {/* Password */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      {...seekerForm.register("password")}
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Create a strong password"
+                      className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                        seekerForm.formState.errors.password
+                          ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                          : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  {seekerForm.formState.errors.password && (
+                    <p className="text-[11px] text-red-600">
+                      {seekerForm.formState.errors.password.message}
+                    </p>
+                  )}
               </div>
 
               {/* Confirm Password */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="block text-xs font-semibold text-slate-700">
                   Confirm password
                 </label>
@@ -432,7 +433,7 @@ function RegisterContent() {
                     {...seekerForm.register("confirmPassword")}
                     type={showConfirm ? "text" : "password"}
                     placeholder="Re-enter your password"
-                    className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
                       seekerForm.formState.errors.confirmPassword
                         ? "border-red-400 focus:ring-2 focus:ring-red-200"
                         : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
@@ -458,8 +459,10 @@ function RegisterContent() {
                 )}
               </div>
 
+              </div>
+
               <p className="text-[11px] text-slate-400">
-                Use at least 8 characters with a number and symbol.
+                Use at least 8 characters.
               </p>
 
               {/* Terms Checkbox */}
@@ -485,7 +488,7 @@ function RegisterContent() {
               <button
                 type="submit"
                 disabled={seekerForm.formState.isSubmitting}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-3 text-sm shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-2.5 text-sm shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {seekerForm.formState.isSubmitting ? (
                   <>
@@ -504,42 +507,67 @@ function RegisterContent() {
             <form
               onSubmit={hrForm.handleSubmit(onHrSubmit)}
               noValidate
-              className="space-y-4"
+              className="space-y-2.5"
             >
-              {/* Company Name */}
-              <div className="space-y-1.5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {/* Company Name */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Company name
+                  </label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      {...hrForm.register("companyName")}
+                      placeholder="Acme Technologies Inc."
+                      className={`w-full bg-white border rounded-xl pl-10 pr-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                        hrForm.formState.errors.companyName
+                          ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                          : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                      }`}
+                    />
+                  </div>
+                  {hrForm.formState.errors.companyName && (
+                    <p className="text-[11px] text-red-600">
+                      {hrForm.formState.errors.companyName.message}
+                    </p>
+                  )}
+              </div>
+
+              {/* Work Email */}
+              <div className="space-y-1">
                 <label className="block text-xs font-semibold text-slate-700">
-                  Company name
+                  Work email address
                 </label>
-                <div className="relative">
-                  <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    {...hrForm.register("companyName")}
-                    placeholder="Acme Technologies Inc."
-                    className={`w-full bg-white border rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
-                      hrForm.formState.errors.companyName
-                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
-                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                    }`}
-                  />
-                </div>
-                {hrForm.formState.errors.companyName && (
+                <input
+                  {...hrForm.register("email")}
+                  type="email"
+                  placeholder="name@company.com"
+                  className={`w-full bg-white border rounded-xl px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    hrForm.formState.errors.email
+                      ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                      : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                  }`}
+                />
+                {hrForm.formState.errors.email && (
                   <p className="text-[11px] text-red-600">
-                    {hrForm.formState.errors.companyName.message}
+                    {hrForm.formState.errors.email.message}
                   </p>
                 )}
               </div>
 
+              </div>
+
               {/* Recruiter Name row */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="block text-xs font-semibold text-slate-700">
                     First name
                   </label>
                   <input
                     {...hrForm.register("firstName")}
                     placeholder="Your first name"
-                    className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    className={`w-full bg-white border rounded-xl px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
                       hrForm.formState.errors.firstName
                         ? "border-red-400 focus:ring-2 focus:ring-red-200"
                         : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
@@ -552,14 +580,14 @@ function RegisterContent() {
                   )}
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="block text-xs font-semibold text-slate-700">
                     Last name
                   </label>
                   <input
                     {...hrForm.register("lastName")}
                     placeholder="Your last name"
-                    className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    className={`w-full bg-white border rounded-xl px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
                       hrForm.formState.errors.lastName
                         ? "border-red-400 focus:ring-2 focus:ring-red-200"
                         : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
@@ -573,37 +601,15 @@ function RegisterContent() {
                 </div>
               </div>
 
-              {/* Work Email */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Work email address
-                </label>
-                <input
-                  {...hrForm.register("email")}
-                  type="email"
-                  placeholder="name@company.com"
-                  className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
-                    hrForm.formState.errors.email
-                      ? "border-red-400 focus:ring-2 focus:ring-red-200"
-                      : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                  }`}
-                />
-                {hrForm.formState.errors.email && (
-                  <p className="text-[11px] text-red-600">
-                    {hrForm.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
-
               {/* Company Size & Phone */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="block text-xs font-semibold text-slate-700">
                     Company size
                   </label>
                   <select
                     {...hrForm.register("companySize")}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none transition-all focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
                   >
                     <option value="1-10 employees">1 - 10 employees</option>
                     <option value="11-50 employees">11 - 50 employees</option>
@@ -613,7 +619,7 @@ function RegisterContent() {
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="block text-xs font-semibold text-slate-700">
                     Phone number
                   </label>
@@ -621,7 +627,7 @@ function RegisterContent() {
                     {...hrForm.register("phone")}
                     type="tel"
                     placeholder="+91 98765 43210"
-                    className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    className={`w-full bg-white border rounded-xl px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
                       hrForm.formState.errors.phone
                         ? "border-red-400 focus:ring-2 focus:ring-red-200"
                         : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
@@ -635,44 +641,45 @@ function RegisterContent() {
                 </div>
               </div>
 
-              {/* Password */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    {...hrForm.register("password")}
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Create a strong password"
-                    className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
-                      hrForm.formState.errors.password
-                        ? "border-red-400 focus:ring-2 focus:ring-red-200"
-                        : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                    aria-label="Toggle password visibility"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-                {hrForm.formState.errors.password && (
-                  <p className="text-[11px] text-red-600">
-                    {hrForm.formState.errors.password.message}
-                  </p>
-                )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {/* Password */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      {...hrForm.register("password")}
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Create a strong password"
+                      className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                        hrForm.formState.errors.password
+                          ? "border-red-400 focus:ring-2 focus:ring-red-200"
+                          : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  {hrForm.formState.errors.password && (
+                    <p className="text-[11px] text-red-600">
+                      {hrForm.formState.errors.password.message}
+                    </p>
+                  )}
               </div>
 
               {/* Confirm Password */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="block text-xs font-semibold text-slate-700">
                   Confirm password
                 </label>
@@ -681,7 +688,7 @@ function RegisterContent() {
                     {...hrForm.register("confirmPassword")}
                     type={showConfirm ? "text" : "password"}
                     placeholder="Re-enter your password"
-                    className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
+                    className={`w-full bg-white border rounded-xl pl-3.5 pr-10 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all ${
                       hrForm.formState.errors.confirmPassword
                         ? "border-red-400 focus:ring-2 focus:ring-red-200"
                         : "border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100"
@@ -707,8 +714,10 @@ function RegisterContent() {
                 )}
               </div>
 
+              </div>
+
               <p className="text-[11px] text-slate-400">
-                Use at least 8 characters with a number and symbol.
+                Use at least 8 characters.
               </p>
 
               {/* Terms Checkbox */}
@@ -734,7 +743,7 @@ function RegisterContent() {
               <button
                 type="submit"
                 disabled={hrForm.formState.isSubmitting}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-3 text-sm shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-2.5 text-sm shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {hrForm.formState.isSubmitting ? (
                   <>
@@ -749,12 +758,12 @@ function RegisterContent() {
           )}
 
           {/* Already have an account link */}
-          <div className="mt-8 text-center border-t border-slate-100 pt-6">
+          <div className="mt-3 text-center border-t border-slate-100 pt-3">
             <span className="text-xs text-slate-500">
               Already have an account?{" "}
             </span>
             <Link
-              href={`/login?role=${role}`}
+              href="/login"
               className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
             >
               Sign in
