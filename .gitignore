@@ -24,4 +24,5 @@ hs_err_pid*
 replay_pid*
 
 *.sql
+!backend/sql/20260926_interview_response_statuses.sql
 .vscode

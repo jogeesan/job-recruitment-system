@@ -213,7 +213,7 @@ public class CompanyController {
         Interview interview = interviewRepository.save(Interview.builder()
                 .application(application)
                 .interviewer(getCompanyUser(details))
-                .interviewType(request.getInterviewType().trim())
+                .interviewType("VIDEO".equals(request.getInterviewType()) ? "ONLINE" : request.getInterviewType())
                 .scheduledAt(request.getScheduledAt())
                 .durationMinutes(request.getDurationMinutes())
                 .location(request.getLocation())
@@ -238,6 +238,9 @@ public class CompanyController {
         Interview interview = interviewRepository.findById(interviewId)
                 .filter(item -> item.getApplication().getJob().getCompany().getId().equals(company.getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Interview not found"));
+        if (!Set.of("SCHEDULED", "ACCEPTED", "DECLINED", "COMPLETED", "CANCELLED", "RESCHEDULED").contains(status.toUpperCase())) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Unsupported interview status"));
+        }
         interview.setStatus(status.toUpperCase());
         notificationService.create(interview.getApplication().getJobSeeker().getUser(), "INTERVIEW_STATUS",
                 "Interview status updated",
