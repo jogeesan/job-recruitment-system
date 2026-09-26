@@ -3,6 +3,8 @@ package com.recruitment.backend.controller;
 import com.recruitment.backend.dto.auth.AuthResponse;
 import com.recruitment.backend.dto.auth.LoginRequest;
 import com.recruitment.backend.dto.auth.RegisterRequest;
+import com.recruitment.backend.dto.auth.ChangePasswordRequest;
+import com.recruitment.backend.dto.auth.UpdateAccountRequest;
 import com.recruitment.backend.dto.common.ApiResponse;
 import com.recruitment.backend.entity.User;
 import com.recruitment.backend.repository.UserRepository;
@@ -15,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseCookie;
 
@@ -93,11 +96,45 @@ public class AuthController {
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
+                .phone(user.getPhone())
                 .role(user.getRole().getName())
                 .status(user.getStatus())
                 .build();
 
         return ResponseEntity.ok(ApiResponse.ok("User info", response));
+    }
+
+    @PutMapping("/account")
+    @PreAuthorize("isAuthenticated()")
+    @Transactional
+    public ResponseEntity<ApiResponse<AuthResponse>> updateAccount(
+            @AuthenticationPrincipal UserDetails details,
+            @Valid @RequestBody UpdateAccountRequest request) {
+        User user = getAuthenticatedUser(details);
+        return ResponseEntity.ok(ApiResponse.ok("Account details updated successfully",
+                authService.updateAccount(user, request)));
+    }
+
+    @PutMapping("/password")
+    @PreAuthorize("isAuthenticated()")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @AuthenticationPrincipal UserDetails details,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        try {
+            authService.changePassword(getAuthenticatedUser(details), request);
+            return ResponseEntity.ok(ApiResponse.ok("Password changed successfully", null));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(exception.getMessage()));
+        }
+    }
+
+    private User getAuthenticatedUser(UserDetails details) {
+        if (details == null) {
+            throw new IllegalArgumentException("Not authenticated");
+        }
+        return userRepository.findByEmail(details.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
     private void addAuthCookie(HttpServletResponse response, String token) {

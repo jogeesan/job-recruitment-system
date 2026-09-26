@@ -3,6 +3,8 @@ package com.recruitment.backend.service;
 import com.recruitment.backend.dto.auth.AuthResponse;
 import com.recruitment.backend.dto.auth.LoginRequest;
 import com.recruitment.backend.dto.auth.RegisterRequest;
+import com.recruitment.backend.dto.auth.ChangePasswordRequest;
+import com.recruitment.backend.dto.auth.UpdateAccountRequest;
 import com.recruitment.backend.entity.Company;
 import com.recruitment.backend.entity.Role;
 import com.recruitment.backend.entity.User;
@@ -116,6 +118,22 @@ public class AuthService {
         return buildAuthResponse(token, user, user.getRole().getName());
     }
 
+    @Transactional
+    public AuthResponse updateAccount(User user, UpdateAccountRequest request) {
+        user.setFirstName(request.getFirstName().trim());
+        user.setLastName(request.getLastName().trim());
+        user.setPhone(request.getPhone() == null || request.getPhone().isBlank() ? null : request.getPhone().trim());
+        return buildAuthResponse(null, user, user.getRole().getName());
+    }
+
+    @Transactional
+    public void changePassword(User user, ChangePasswordRequest request) {
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+    }
+
     // ─── Helper ───────────────────────────────────────────────────────────────
     private AuthResponse buildAuthResponse(String token, User user, String roleName) {
         return AuthResponse.builder()
@@ -125,6 +143,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
+                .phone(user.getPhone())
                 .role(roleName)
                 .status(user.getStatus())
                 .build();
