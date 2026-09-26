@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { Bookmark, Search } from "lucide-react";
+import Link from "next/link";
 import { ProtectedDashboard } from "@/components/dashboard/ProtectedDashboard";
 import { getSavedJobIds, searchJobs, toggleSavedJob } from "@/lib/jobs";
 import type { JobSummary } from "@/types/jobs";
@@ -85,7 +86,7 @@ export default function FindJobsPage() {
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 text-sm">
                 <span className="font-semibold text-slate-700">{formatSalary(job)}</span>
-                <button type="button" className="rounded-lg bg-[#5b55dc] px-4 py-2 font-semibold text-white hover:bg-[#4c47c7]">View details</button>
+                <Link href={`/job-seeker/jobs/${job.id}`} className="rounded-lg bg-[#5b55dc] px-4 py-2 font-semibold text-white hover:bg-[#4c47c7]">View details</Link>
               </div>
             </article>
           ))}

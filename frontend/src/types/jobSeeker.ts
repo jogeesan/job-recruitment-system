@@ -23,3 +23,12 @@ export interface ApplicationSummary {
   appliedAt: string;
   updatedAt: string;
 }
+
+export interface ApplicationStatusHistory {
+  id: number;
+  oldStatus: string | null;
+  newStatus: string;
+  changedByName: string;
+  notes: string | null;
+  changedAt: string;
+}

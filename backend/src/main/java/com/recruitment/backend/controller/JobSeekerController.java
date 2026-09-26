@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.UUID;
 import java.util.List;
 import java.util.Set;
@@ -44,6 +45,7 @@ public class JobSeekerController {
     private final SkillRepository skillRepository;
     private final InterviewRepository interviewRepository;
     private final NotificationService notificationService;
+    private final ApplicationStatusHistoryRepository applicationStatusHistoryRepository;
 
     @GetMapping("/resumes")
     @Transactional(readOnly = true)
@@ -138,6 +140,23 @@ public class JobSeekerController {
                 .map(this::toApplication)
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok("Applications retrieved successfully", applications));
+    }
+
+    @GetMapping("/applications/{applicationId}/history")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<ApplicationStatusHistoryResponse>>> getApplicationHistory(
+            @AuthenticationPrincipal UserDetails details,
+            @PathVariable Long applicationId) {
+        JobSeeker seeker = getSeeker(details);
+        applicationRepository.findById(applicationId)
+                .filter(application -> application.getJobSeeker().getId().equals(seeker.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+        List<ApplicationStatusHistoryResponse> history = applicationStatusHistoryRepository
+                .findByApplicationIdOrderByChangedAtAsc(applicationId)
+                .stream()
+                .map(this::toStatusHistory)
+                .toList();
+        return ResponseEntity.ok(ApiResponse.ok("Application status history retrieved successfully", history));
     }
 
     @GetMapping("/profile-data")
@@ -277,6 +296,10 @@ public class JobSeekerController {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(ApiResponse.error("This job is no longer accepting applications"));
         }
+        if (job.getApplicationDeadline() != null && job.getApplicationDeadline().isBefore(LocalDate.now())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResponse.error("The application deadline has passed"));
+        }
         if (applicationRepository.existsByJobIdAndJobSeekerId(jobId, seeker.getId())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(ApiResponse.error("You have already applied for this job"));
@@ -293,6 +316,15 @@ public class JobSeekerController {
                 .coverLetter(request.getCoverLetter())
                 .status("APPLIED")
                 .build());
+        applicationStatusHistoryRepository.save(ApplicationStatusHistory.builder()
+                .application(application)
+                .newStatus(application.getStatus())
+                .notes("Application submitted")
+                .changedBy(seeker.getUser())
+                .build());
+        notificationService.create(job.getCompany().getUser(), "NEW_APPLICATION",
+                "New job application",
+                "A candidate applied for " + job.getTitle() + ".");
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Application submitted successfully", toApplication(application)));
     }
@@ -346,6 +378,19 @@ public class JobSeekerController {
                 .location(seeker.getLocation())
                 .yearsOfExperience(seeker.getYearsOfExperience())
                 .profileImageUrl(seeker.getProfileImageUrl())
+                .build();
+    }
+
+    private ApplicationStatusHistoryResponse toStatusHistory(ApplicationStatusHistory history) {
+        User changedBy = history.getChangedBy();
+        String changedByName = changedBy == null ? "System" : changedBy.getFirstName() + " " + changedBy.getLastName();
+        return ApplicationStatusHistoryResponse.builder()
+                .id(history.getId())
+                .oldStatus(history.getOldStatus())
+                .newStatus(history.getNewStatus())
+                .changedByName(changedByName)
+                .notes(history.getNotes())
+                .changedAt(history.getChangedAt())
                 .build();
     }
 

@@ -6,12 +6,14 @@ import com.recruitment.backend.entity.Application;
 import com.recruitment.backend.entity.Company;
 import com.recruitment.backend.entity.Job;
 import com.recruitment.backend.entity.Interview;
+import com.recruitment.backend.entity.ApplicationStatusHistory;
 import com.recruitment.backend.entity.User;
 import com.recruitment.backend.repository.ApplicationRepository;
 import com.recruitment.backend.repository.CompanyRepository;
 import com.recruitment.backend.repository.JobRepository;
 import com.recruitment.backend.repository.UserRepository;
 import com.recruitment.backend.repository.InterviewRepository;
+import com.recruitment.backend.repository.ApplicationStatusHistoryRepository;
 import com.recruitment.backend.service.NotificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +42,7 @@ public class CompanyController {
     private final ApplicationRepository applicationRepository;
     private final InterviewRepository interviewRepository;
     private final NotificationService notificationService;
+    private final ApplicationStatusHistoryRepository applicationStatusHistoryRepository;
 
     @GetMapping("/dashboard")
     @Transactional(readOnly = true)
@@ -169,7 +172,16 @@ public class CompanyController {
         if (!APPLICATION_STATUSES.contains(request.getStatus().toUpperCase())) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Unsupported application status"));
         }
+        String oldStatus = application.getStatus();
         application.setStatus(request.getStatus().toUpperCase());
+        if (!oldStatus.equals(application.getStatus())) {
+            applicationStatusHistoryRepository.save(ApplicationStatusHistory.builder()
+                    .application(application)
+                    .oldStatus(oldStatus)
+                    .newStatus(application.getStatus())
+                    .changedBy(getCompanyUser(details))
+                    .build());
+        }
         notificationService.create(application.getJobSeeker().getUser(), "APPLICATION_STATUS",
                 "Application status updated",
                 "Your application for " + application.getJob().getTitle() + " is now " + application.getStatus() + ".");
