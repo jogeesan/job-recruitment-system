@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BriefcaseBusiness, FileText, LayoutDashboard, LogOut, Settings, UserRound } from "lucide-react";
+import { Bell, BriefcaseBusiness, FileText, LayoutDashboard, LogOut, Settings, UserRound } from "lucide-react";
 import { useAuth } from "@/store/authStore";
+import { useEffect, useState } from "react";
+import { getUnreadNotificationCount } from "@/lib/notifications";
 
 type DashboardRole = "JOB_SEEKER" | "HR" | "ADMIN";
 
@@ -14,6 +16,7 @@ const navigation: Record<DashboardRole, Array<{ label: string; href: string; ico
     { label: "My Applications", href: "/job-seeker/applications", icon: FileText },
     { label: "Interviews", href: "/job-seeker/interviews", icon: FileText },
     { label: "My Profile", href: "/job-seeker/profile", icon: UserRound },
+    { label: "Notifications", href: "/notifications", icon: Bell },
   ],
   HR: [
     { label: "Dashboard", href: "/company", icon: LayoutDashboard },
@@ -21,6 +24,7 @@ const navigation: Record<DashboardRole, Array<{ label: string; href: string; ico
     { label: "Applications", href: "/company/applications", icon: FileText },
     { label: "Interviews", href: "/company/interviews", icon: FileText },
     { label: "Company Profile", href: "/company/profile", icon: UserRound },
+    { label: "Notifications", href: "/notifications", icon: Bell },
   ],
   ADMIN: [
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -29,6 +33,7 @@ const navigation: Record<DashboardRole, Array<{ label: string; href: string; ico
     { label: "Companies", href: "/admin/companies", icon: BriefcaseBusiness },
     { label: "Applications", href: "/admin/applications", icon: FileText },
     { label: "Skills", href: "/admin/skills", icon: FileText },
+    { label: "Notifications", href: "/notifications", icon: Bell },
   ],
 };
 
@@ -41,7 +46,12 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
   const items = navigation[role];
+
+  useEffect(() => {
+    getUnreadNotificationCount().then(setUnreadCount).catch(() => setUnreadCount(0));
+  }, [pathname]);
 
   return (
     <div className="min-h-screen bg-[#f5f7fb] text-slate-900">
@@ -72,6 +82,9 @@ export function DashboardShell({
               >
                 <Icon className="h-4 w-4" />
                 {item.label}
+                {item.href === "/notifications" && unreadCount > 0 && (
+                  <span className="ml-auto rounded-full bg-[#21c79a] px-1.5 py-0.5 text-[10px] font-bold text-[#0e172b]">{unreadCount}</span>
+                )}
               </Link>
             );
           })}
